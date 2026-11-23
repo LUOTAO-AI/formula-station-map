@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>配方工作站 · 模式二（思维导图）</title>
+<style>
+:root{--bg:#f6f7f9;--card:#fff;--ink:#1d2129;--sub:#4e5969;--faint:#86909c;--line:#e5e6eb;--line2:#f0f1f3;--brand:#1f5fbf;--soft:#eaf1fc;--bad:#a4222f;--ok:#0e7a4f}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;overflow:hidden}
+button,input,select,textarea{font:inherit;color:inherit}
+h1,h3{margin:0;font-weight:600}
+.btn{border:1px solid var(--line);background:#fff;border-radius:8px;padding:6px 12px;font-size:13px;cursor:pointer}
+.btn:hover{background:#f2f3f5}
+.btn.primary{background:var(--brand);border-color:var(--brand);color:#fff}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+header{height:56px;display:flex;align-items:center;gap:10px;padding:0 16px;background:#fff;border-bottom:1px solid var(--line)}
+header h1{font-size:17px}
+header .sub{font-size:11.5px;color:var(--faint)}
+header .ops{margin-left:auto;display:flex;gap:6px;align-items:center;flex-wrap:nowrap}
+.status{font-size:11.5px;color:var(--faint);white-space:nowrap}
+.status.ok{color:var(--ok)}
+.workspace{position:relative;height:calc(100vh - 56px);overflow:hidden;background:
+  radial-gradient(circle at 1px 1px, #e9ebef 1px, transparent 0) 0 0/22px 22px}
+#canvas{width:100%;height:100%;cursor:grab;display:block}
+#canvas.dragging{cursor:grabbing}
+.zoombar{position:absolute;right:14px;bottom:14px;display:flex;flex-direction:column;gap:6px}
+.zoombar button{width:34px;height:34px;border-radius:8px;border:1px solid var(--line);background:#fff;cursor:pointer;font-size:15px}
+.empty-hint{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none}
+.empty-hint div{background:#fff;border:1px dashed var(--line);border-radius:12px;padding:26px 30px;text-align:center;color:var(--faint);font-size:13px;line-height:1.8}
+.drawer{position:absolute;right:0;top:0;bottom:0;width:420px;background:#fff;border-left:1px solid var(--line);transform:translateX(100%);transition:.25s;display:flex;flex-direction:column;z-index:20}
+.drawer.on{transform:none}
+.drawer .hd{padding:14px 16px;border-bottom:1px solid var(--line)}
+.drawer .hd h3{font-size:15px}
+.drawer .hd .meta{font-size:11.5px;color:var(--faint);margin-top:2px}
+.drawer .bd{padding:14px 16px;overflow:auto;flex:1;font-size:13px}
+.drawer .ft{padding:12px 16px;border-top:1px solid var(--line);display:flex;gap:8px;justify-content:flex-end}
+table{width:100%;border-collapse:collapse;font-size:12.5px;margin-bottom:12px}
+td,th{border-bottom:1px solid var(--line2);padding:6px 6px;text-align:left}
+th{color:var(--faint);font-weight:400}
+.lbl{font-size:12px;color:var(--faint);margin:10px 0 4px}
+.gate{position:fixed;inset:0;background:var(--bg);display:grid;place-items:center;z-index:50}
+.gate .box{width:min(400px,92vw);background:#fff;border:1px solid var(--line);border-radius:12px;padding:22px}
+.gate h3{font-size:17px;margin-bottom:4px}
+.gate p{font-size:12.5px;color:var(--faint);margin:0 0 16px}
+.f{margin-bottom:12px}
+.f label{display:block;font-size:12.5px;color:var(--sub);margin-bottom:5px}
+.f input{width:100%;border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:13px;outline:none}
+.f input:focus{border-color:var(--brand)}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(10px);background:#1d2129;color:#fff;font-size:13px;padding:8px 16px;border-radius:8px;opacity:0;pointer-events:none;transition:.2s;z-index:90;max-width:88vw}
+.toast.on{opacity:1;transform:translateX(-50%)}
+.node rect{transition:filter .15s}
+.node:hover rect{filter:brightness(.98)}
+.node text{font-size:12px;fill:var(--ink);pointer-events:none;user-select:none}
+.node .ver{fill:var(--brand);font-weight:600}
+.node .mini{font-size:10.5px;fill:var(--faint)}
+.node.current rect{stroke:var(--brand);stroke-width:2px}
+.node.hit rect{stroke:#f5a524;stroke-width:2px}
+.link{fill:none;stroke:#c9d3e3;stroke-width:1.5px}
+@media (max-width:640px){
+  header{height:auto;flex-wrap:wrap;padding:8px 12px;gap:6px}
+  header h1{font-size:16px}
+  header .ops{width:100%;margin-left:0;flex-wrap:wrap}
+  .workspace{height:calc(100vh - 104px)}
+  .drawer{width:100%;top:auto;height:62vh;transform:translateY(100%);border-left:0;border-top:1px solid var(--line);border-radius:12px 12px 0 0}
+  .drawer.on{transform:none}
+  .empty-hint div{padding:20px 16px;font-size:12.5px;max-width:86vw}
+}
+</style>
+</head>
+<body>
+
+<div class="gate" id="gate">
+  <div class="box">
+    <h3>配方工作站 · 思维导图</h3>
+    <p>输入口令和你自己的名字，进入后所有人看到同一份数据。</p>
+    <div class="f"><label>口令</label><input id="gCode" type="password" placeholder="向管理员索取"></div>
+    <div class="f"><label>你的名字</label><input id="gName" placeholder="如：罗涛"></div>
+    <button class="btn primary" id="gGo" style="width:100%">进入</button>
+  </div>
+</div>
+
+<header>
+  <div><h1>配方工作站 · 模式二</h1><div class="sub">云端共享 · 思维导图 · 版本迭代 · 点开即改 · 备份带图</div></div>
+  <div class="ops">
+    <span class="status" id="st">连接中…</span>
+    <button class="btn" id="btnExport" disabled title="阶段三开放">导出备份（含图）</button>
+    <button class="btn" id="btnImport" disabled title="阶段三开放">导入备份</button>
+    <button class="btn" id="btnBatch" disabled title="阶段三开放">批量导入图片</button>
+    <button class="btn primary" id="btnNew" disabled title="阶段二开放">+ 新建配方</button>
+    <button class="btn" id="btnOut">退出</button>
+  </div>
+</header>
+
+<div class="workspace" id="workspace">
+  <svg id="canvas"><g id="viewport"></g></svg>
+  <div class="empty-hint" id="emptyHint" style="display:none"><div>暂无配方。点右上角 + 新建配方 开始第一次记录（不会预置任何数据）</div></div>
+  <div class="zoombar">
+    <button id="zoomIn" title="放大">＋</button>
+    <button id="zoomOut" title="缩小">－</button>
+    <button id="resetView" title="回到全图">⤢</button>
+  </div>
+  <aside class="drawer" id="drawer">
+    <div class="hd"><h3 id="dTitle">—</h3><div class="meta" id="dMeta"></div></div>
+    <div class="bd" id="dBody"></div>
+    <div class="ft"><button class="btn" id="dClose">关闭</button></div>
+  </aside>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+"use strict";
+/* ===== 配置：只改这一处 ===== */
+var SB_URL = "https://iaomspmxhblrxeheacjc.supabase.co";
+var SB_KEY = "sb_publishable_PyT0Lw0nAtywYKtZydn8xg_yqfXyg9w";
+var PAIR_CODE = "shipin2026";
+var MAX_MB = 20;
+/* =========================== */
+
+var H={apikey:SB_KEY,Authorization:"Bearer "+SB_KEY};
+var records=[];
+var name=localStorage.getItem("fx_name")||"";
+var mode="product";                 // product | category | month
+var collapsed=JSON.parse(localStorage.getItem("fx_collapsed")||"{}");
+var search="";
+var view={x:20,y:20,k:1};
+var hitSet={};
+
+function $(s){return document.querySelector(s);}
+function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];});}
+function toast(m){var t=$("#toast");t.textContent=m;t.classList.add("on");clearTimeout(window.__t);window.__t=setTimeout(function(){t.classList.remove("on");},4000);}
+
+/* ---------- 数据 ---------- */
+async function sb(path){
+  var res=await fetch(SB_URL+"/rest/v1"+path,{headers:Object.assign({},H,{"Content-Type":"application/json"})});
+  var t=await res.text();
+  var d=null; try{ d=t?JSON.parse(t):null; }catch(e){ d=t; }
+  if(!res.ok){ var e2=new Error((d&&d.message)||("HTTP "+res.status)); e2.code=d&&d.code; throw e2; }
+  return d;
+}
+async function loadAll(){ records=await sb("/records?select=*&order=updated_at.desc"); }
+
+/* ---------- 分区 ---------- */
+function zoneOf(r){
+  if(mode==="category") return r.category||"未分类";
+  if(mode==="month") return (r.date||"").slice(0,7)||"未填日期";
+  return r.product||"未命名产品";
+}
+function verOf(r){var n=parseInt(r.version,10);return isNaN(n)?1:n;}
+
+/* ---------- 构树 ---------- */
+function buildTree(){
+  var zones={};
+  records.forEach(function(r){
+    var z=zoneOf(r);
+    (zones[z]=zones[z]||{}).products=zones[z].products||{};
+    var p=r.product||"未命名产品";
+    (zones[z].products[p]=zones[z].products[p]||[]).push(r);
+  });
+  return Object.keys(zones).sort().map(function(z){
+    var prods=zones[z].products;
+    return { name:z, children:Object.keys(prods).sort().map(function(p){
+      var list=prods[p].slice().sort(function(a,b){return verOf(a)-verOf(b);});
+      return { name:p, records:list };
+    })};
+  });
+}
+
+/* ---------- 布局（简单横向树，版本竖排） ---------- */
+function layout(tree){
+  var NODE_W=168, NODE_H=50, GAP_Y=62, X0=40, XZ=250, XP=470, XV=700;
+  var pos={}, links=[], y=40;
+  var rootY=0, zoneNodes=[];
+  var skipProd = (mode==="product");   // 按产品分区时，分区名就是产品名，省掉重复的一层
+  tree.forEach(function(z){
+    var zIndex=collapsed["z:"+z.name];
+    var zY0=y;
+    var prodRefs=[];
+    if(!zIndex && skipProd){
+      var recs=z.children.length?z.children[0].records:[];
+      recs.forEach(function(r){
+        var yy=y; y+=GAP_Y;
+        pos[r.id]={x:XV,y:yy,w:NODE_W,h:NODE_H,type:"ver",rec:r};
+        prodRefs.push({key:"",x:XP,y:yy+GAP_Y/2});
+        links.push({from:{x:XZ+NODE_W,y:yy+GAP_Y/2},to:{x:XV,y:yy+GAP_Y/2}});
+      });
+    } else if(!zIndex){
+      z.children.forEach(function(p){
+        var pKey="p:"+z.name+"|"+p.name;
+        var pCollapsed=collapsed[pKey];
+        var pY0=y;
+        var recRefs=[];
+        if(!pCollapsed){
+          p.records.forEach(function(r,ri){
+            var yy=y; y+=GAP_Y;
+            pos[r.id]={x:XV,y:yy,w:NODE_W,h:NODE_H,type:"ver",rec:r};
+            recRefs.push({id:r.id,y:yy+GAP_Y/2});
+          });
+        }
+        var pY = pCollapsed ? (y+GAP_Y/2) : (recRefs.length? (recRefs[0].y+recRefs[recRefs.length-1].y)/2 : y+GAP_Y/2);
+        if(pCollapsed){ y+=GAP_Y; }
+        pos["p|"+z.name+"|"+p.name]={x:XP,y:pY-NODE_H/2,w:NODE_W,h:NODE_H,type:"prod",label:p.name,zone:z.name,count:p.records.length,collapsed:!!pCollapsed};
+        prodRefs.push({key:"p|"+z.name+"|"+p.name,x:XP,y:pY});
+        recRefs.forEach(function(rf){ links.push({from:{x:XP+NODE_W,y:pY},to:{x:XV,y:rf.y}}); });
+      });
+    }
+    var zY = zIndex ? (y+GAP_Y/2) : (prodRefs.length ? (prodRefs[0].y+prodRefs[prodRefs.length-1].y)/2 : y+GAP_Y/2);
+    if(zIndex){ y+=GAP_Y; }
+    pos["z|"+z.name]={x:XZ,y:zY-NODE_H/2,w:NODE_W,h:NODE_H,type:"zone",label:z.name,count:z.children.length,collapsed:!!zIndex};
+    zoneNodes.push({key:"z|"+z.name,x:XZ,y:zY});
+    if(!skipProd) prodRefs.forEach(function(pr){ links.push({from:{x:XZ+NODE_W,y:zY},to:{x:XP,y:pr.y}}); });
+  });
+  var rootYv = zoneNodes.length ? (zoneNodes[0].y+zoneNodes[zoneNodes.length-1].y)/2 : 40;
+  pos["root"]={x:X0,y:rootYv-NODE_H/2,w:NODE_W,h:NODE_H,type:"root",label:"全部配方",count:records.length};
+  zoneNodes.forEach(function(zn){ links.push({from:{x:X0+NODE_W,y:rootYv},to:{x:XZ,y:zn.y}}); });
+  return {pos:pos,links:links,height:y+40};
+}
+
+/* ---------- 命中搜索 ---------- */
+function computeHits(){
+  hitSet={};
+  var kw=search.trim().toLowerCase();
+  if(kw.length<=1) return;
+  records.forEach(function(r){
+    var hay=[r.product,r.category,r.title,r.feedback,
+      (r.ingredients||[]).map(function(i){return [i.name,i.amount,i.note].join(" ");}).join(" "),
+      (r.process||[]).map(function(p){return [p.name,p.value,p.note].join(" ");}).join(" ")].join(" ").toLowerCase();
+    if(hay.indexOf(kw)>-1) hitSet[r.id]=1;
+  });
+}
+
+/* ---------- 绘制 ---------- */
+function renderMap(){
+  computeHits();
+  var tree=buildTree();
+  if(search.trim().length>1){
+    // 命中时自动展开所在分区与产品
+    Object.keys(hitSet).forEach(function(id){
+      var r=records.filter(function(x){return x.id===id;})[0]; if(!r) return;
+      collapsed["z:"+zoneOf(r)]=false;
+      collapsed["p:"+zoneOf(r)+"|"+(r.product||"未命名产品")]=false;
+    });
+  }
+  var L=layout(tree), pos=L.pos, links=L.links;
+  var parts=[];
+  // 连线
+  links.forEach(function(lk){
+    var x1=lk.from.x,y1=lk.from.y,x2=lk.to.x,y2=lk.to.y,mid=(x1+x2)/2;
+    parts.push('<path class="link" d="M'+x1+','+y1+' C'+mid+','+y1+' '+mid+','+y2+' '+x2+','+y2+'"/>');
+  });
+  // 节点
+  Object.keys(pos).forEach(function(k){
+    var n=pos[k];
+    var cls="node";
+    if(n.type==="ver"){
+      var r=n.rec;
+      if(hitSet[r.id]) cls+=" hit";
+      var badges=(r.recipe_image_url||r.product_image_url?" 📷":"")+((r.attachments||[]).length?(" 📎"+r.attachments.length):"");
+      parts.push('<g class="'+cls+'" data-node="ver" data-id="'+esc(r.id)+'" transform="translate('+n.x+','+n.y+')">'+
+        '<rect width="'+n.w+'" height="'+n.h+'" rx="9" fill="#fff" stroke="#e5e6eb"/>'+
+        '<text x="10" y="19">'+esc((r.product||"").slice(0,10))+' <tspan class="ver">v'+verOf(r)+'</tspan></text>'+
+        '<text class="mini" x="10" y="36">'+esc(r.date||"未填日期")+' · '+esc(r.updated_by||"—")+esc(badges)+'</text></g>');
+    } else if(n.type==="prod"){
+      parts.push('<g class="'+cls+'" data-node="prod" data-zone="'+esc(n.zone)+'" data-name="'+esc(n.label)+'" transform="translate('+n.x+','+n.y+')">'+
+        '<rect width="'+n.w+'" height="'+n.h+'" rx="9" fill="#f2f6fd" stroke="#cfdff7"/>'+
+        '<text x="10" y="21">'+esc(n.label.slice(0,11))+(n.collapsed?" ▸":"")+'</text>'+
+        '<text class="mini" x="10" y="37">'+n.count+' 个版本</text></g>');
+    } else if(n.type==="zone"){
+      parts.push('<g class="'+cls+'" data-node="zone" data-name="'+esc(n.label)+'" transform="translate('+n.x+','+n.y+')">'+
+        '<rect width="'+n.w+'" height="'+n.h+'" rx="9" fill="#eef3fb" stroke="#cfdff7"/>'+
+        '<text x="10" y="21">'+esc(n.label.slice(0,11))+(n.collapsed?" ▸":"")+'</text>'+
+        '<text class="mini" x="10" y="37">'+n.count+(mode==='product'?' 个版本':' 个产品')+'</text></g>');
+    } else {
+      parts.push('<g class="'+cls+'" data-node="root" transform="translate('+n.x+','+n.y+')">'+
+        '<rect width="'+n.w+'" height="'+n.h+'" rx="10" fill="#1f5fbf"/>'+
+        '<text x="10" y="21" fill="#fff">全部配方</text>'+
+        '<text class="mini" x="10" y="37" fill="#dbe7f8">'+n.count+' 条记录</text></g>');
+    }
+  });
+  $("#viewport").innerHTML=parts.join("");
+  applyView();
+  // 空状态
+  $("#emptyHint").style.display = records.length===0 ? "grid" : "none";
+  // 搜索无命中
+  if(records.length && search.trim().length>1 && Object.keys(hitSet).length===0){
+    $("#emptyHint").innerHTML='<div>没有符合条件的配方。试试清空搜索词或切换分区</div>';
+    $("#emptyHint").style.display="grid";
+  } else {
+    $("#emptyHint").innerHTML='<div>暂无配方。点右上角 + 新建配方 开始第一次记录（不会预置任何数据）</div>';
+  }
+}
+function applyView(){ $("#viewport").setAttribute("transform","translate("+view.x+","+view.y+") scale("+view.k+")"); }
+function fitView(){
+  var tree=buildTree(); var L=layout(tree);
+  var maxX=0,maxY=0;
+  Object.keys(L.pos).forEach(function(k){ maxX=Math.max(maxX,L.pos[k].x+L.pos[k].w); maxY=Math.max(maxY,L.pos[k].y+L.pos[k].h); });
+  var W=$("#workspace").clientWidth||1000, Hh=$("#workspace").clientHeight||600;
+  var k=Math.min(1, (W-60)/Math.max(400,maxX+40), (Hh-60)/Math.max(300,maxY+40));
+  view.k=Math.max(0.35,Math.min(1.2,k));
+  view.x=24; view.y=24;
+  applyView();
+}
+
+/* ---------- 交互 ---------- */
+$("#canvas").addEventListener("click",function(e){
+  var g=e.target.closest("[data-node]"); if(!g) return;
+  var t=g.getAttribute("data-node");
+  if(t==="zone"){ var z=g.getAttribute("data-name"); collapsed["z:"+z]=!collapsed["z:"+z]; saveCollapsed(); renderMap(); return; }
+  if(t==="prod"){ var z2=g.getAttribute("data-zone"), p=g.getAttribute("data-name"); var k="p:"+z2+"|"+p; collapsed[k]=!collapsed[k]; saveCollapsed(); renderMap(); return; }
+  if(t==="ver"){ openDrawer(g.getAttribute("data-id")); return; }
+});
+function saveCollapsed(){ try{localStorage.setItem("fx_collapsed",JSON.stringify(collapsed));}catch(e){} }
+
+/* 拖动平移 */
+var drag=null;
+$("#canvas").addEventListener("pointerdown",function(e){
+  drag={x:e.clientX,y:e.clientY,vx:view.x,vy:view.y,moved:false};
+  $("#canvas").classList.add("dragging");
+});
+window.addEventListener("pointermove",function(e){
+  if(!drag) return;
+  var dx=e.clientX-drag.x, dy=e.clientY-drag.y;
+  if(Math.abs(dx)+Math.abs(dy)>3) drag.moved=true;
+  view.x=drag.vx+dx; view.y=drag.vy+dy; applyView();
+});
+window.addEventListener("pointerup",function(){ drag=null; $("#canvas").classList.remove("dragging"); });
+$("#canvas").addEventListener("wheel",function(e){
+  e.preventDefault();
+  var k=e.deltaY<0?1.12:1/1.12;
+  var nk=Math.max(0.3,Math.min(2.5,view.k*k));
+  var rect=$("#canvas").getBoundingClientRect();
+  var mx=e.clientX-rect.left, my=e.clientY-rect.top;
+  view.x=mx-(mx-view.x)*(nk/view.k);
+  view.y=my-(my-view.y)*(nk/view.k);
+  view.k=nk; applyView();
+},{passive:false});
+$("#zoomIn").onclick=function(){ view.k=Math.min(2.5,view.k*1.2); applyView(); };
+$("#zoomOut").onclick=function(){ view.k=Math.max(0.3,view.k/1.2); applyView(); };
+$("#resetView").onclick=fitView;
+
+/* ---------- 抽屉（只读，阶段二再做编辑） ---------- */
+function openDrawer(id){
+  var r=records.filter(function(x){return x.id===id;})[0]; if(!r) return;
+  var same=records.filter(function(x){return (x.product||"")===(r.product||"");}).sort(function(a,b){return verOf(a)-verOf(b);});
+  var idx=same.findIndex(function(x){return x.id===r.id;});
+  $("#dTitle").textContent=(r.product||"")+" · v"+verOf(r);
+  $("#dMeta").textContent="编号 "+r.id+" ｜ "+((r.date)||"—")+" ｜ 第 "+(idx+1)+" 版 / 共 "+same.length+" 版 ｜ 修改人 "+(r.updated_by||"—");
+  var ing=(r.ingredients||[]).map(function(i){return "<tr><td>"+esc(i.name)+"</td><td>"+esc(i.amount)+"</td><td>"+esc(i.unit)+"</td><td>"+esc(i.note)+"</td></tr>";}).join("");
+  var proc=(r.process||[]).map(function(p){return "<tr><td>"+esc(p.name)+"</td><td>"+esc(p.value)+"</td><td>"+esc(p.note)+"</td></tr>";}).join("");
+  var imgs="";
+  if(r.recipe_image_url) imgs+='<img src="'+esc(r.recipe_image_url)+'" style="width:88px;height:66px;object-fit:cover;border:1px solid var(--line);border-radius:8px;margin-right:8px">';
+  if(r.product_image_url) imgs+='<img src="'+esc(r.product_image_url)+'" style="width:88px;height:66px;object-fit:cover;border:1px solid var(--line);border-radius:8px">';
+  $("#dBody").innerHTML=
+    '<div class="lbl">配方用量</div><table><tr><th>原料</th><th>用量</th><th>单位</th><th>备注</th></tr>'+(ing||'<tr><td colspan="4" style="color:#86909c">未填</td></tr>')+'</table>'+
+    '<div class="lbl">工艺参数</div><table><tr><th>参数</th><th>数值</th><th>备注</th></tr>'+(proc||'<tr><td colspan="3" style="color:#86909c">未填</td></tr>')+'</table>'+
+    '<div class="lbl">成品反馈</div><div style="white-space:pre-wrap;color:var(--sub)">'+(r.feedback?esc(r.feedback):"未填")+'</div>'+
+    (imgs?'<div class="lbl">图片</div><div>'+imgs+'</div>':'')+
+    '<div class="lbl">附件</div><div style="color:var(--sub)">'+((r.attachments||[]).length?r.attachments.map(function(a){return '<a href="'+esc(a.url)+'" target="_blank">'+esc(a.name)+'</a>';}).join("<br>"):"未上传附件")+'</div>'+
+    '<div style="margin-top:14px;font-size:11.5px;color:#86909c">阶段二开放：直接在抽屉里改用量并保存为新版本。</div>';
+  $("#drawer").classList.add("on");
+  toast("只读预览（编辑与派生在阶段二）");
+}
+$("#dClose").onclick=function(){ $("#drawer").classList.remove("on"); };
+
+/* ---------- 顶栏 ---------- */
+$("#btnOut").onclick=function(){ sessionStorage.removeItem("fx_pass"); location.reload(); };
+$("#btnExport").disabled=true; $("#btnImport").disabled=true; $("#btnBatch").disabled=true; $("#btnNew").disabled=true;
+
+/* 分区切换（简易：右键循环？改为键盘 1/2/3 + 双击根节点） */
+document.addEventListener("keydown",function(e){
+  if(e.key==="1"){ mode="product"; renderMap(); toast("分区：按产品名"); }
+  if(e.key==="2"){ mode="category"; renderMap(); toast("分区：按品类"); }
+  if(e.key==="3"){ mode="month"; renderMap(); toast("分区：按时间（年-月）"); }
+});
+
+/* ---------- 启动 ---------- */
+async function boot(){
+  if(sessionStorage.getItem("fx_pass")==="1" && name){
+    $("#gate").style.display="none";
+    start();
+  } else {
+    $("#gate").style.display="grid";
+  }
+}
+$("#gGo").onclick=function(){
+  if($("#gCode").value.trim()!==PAIR_CODE){ toast("口令不对"); return; }
+  var n=$("#gName").value.trim();
+  if(!n){ toast("请填名字"); return; }
+  name=n; localStorage.setItem("fx_name",n); sessionStorage.setItem("fx_pass","1");
+  $("#gate").style.display="none";
+  start();
+};
+$("#gCode").addEventListener("keydown",function(e){ if(e.key==="Enter") $("#gGo").click(); });
+
+async function start(){
+  try{
+    await loadAll();
+    $("#st").textContent="已连接云端 · "+records.length+" 条记录";
+    $("#st").className="status ok";
+    renderMap();
+    fitView();
+  }catch(e){
+    $("#st").textContent="连接失败";
+    $("#st").className="status";
+    if(e.code==="PGRST205"){
+      toast("数据库还没建表：去 Supabase 控制台 → SQL Editor → 粘贴 schema.sql 整段 → Run，然后刷新本页");
+    } else {
+      toast("读取失败："+e.message+"（检查网络，或确认 key 与项目地址正确）");
+    }
+  }
+}
+boot();
+})();
+</script>
+</body>
+</html>
