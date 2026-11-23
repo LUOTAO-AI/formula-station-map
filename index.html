@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>配方工作站 · 模式二（思维导图）</title>
+<title>配方工作站 · 模式二（可拖动思维导图）</title>
 <style>
 :root{--bg:#f6f7f9;--card:#fff;--ink:#1d2129;--sub:#4e5969;--faint:#86909c;--line:#e5e6eb;--line2:#f0f1f3;--brand:#1f5fbf;--soft:#eaf1fc;--bad:#a4222f;--ok:#0e7a4f}
 *{box-sizing:border-box}
@@ -13,32 +13,41 @@ h1,h3{margin:0;font-weight:600}
 .btn{border:1px solid var(--line);background:#fff;border-radius:8px;padding:6px 12px;font-size:13px;cursor:pointer}
 .btn:hover{background:#f2f3f5}
 .btn.primary{background:var(--brand);border-color:var(--brand);color:#fff}
+.btn.sm{padding:4px 10px;font-size:12px;border-radius:6px}
+.btn.danger{color:var(--bad);border-color:#f3d2d6}
 .btn:disabled{opacity:.45;cursor:not-allowed}
 header{height:56px;display:flex;align-items:center;gap:10px;padding:0 16px;background:#fff;border-bottom:1px solid var(--line)}
 header h1{font-size:17px}
 header .sub{font-size:11.5px;color:var(--faint)}
-header .ops{margin-left:auto;display:flex;gap:6px;align-items:center;flex-wrap:nowrap}
+header .ops{margin-left:auto;display:flex;gap:6px;align-items:center}
 .status{font-size:11.5px;color:var(--faint);white-space:nowrap}
 .status.ok{color:var(--ok)}
-.workspace{position:relative;height:calc(100vh - 56px);overflow:hidden;background:
-  radial-gradient(circle at 1px 1px, #e9ebef 1px, transparent 0) 0 0/22px 22px}
-#canvas{width:100%;height:100%;cursor:grab;display:block}
+.workspace{position:relative;height:calc(100vh - 56px);overflow:hidden;background:radial-gradient(circle at 1px 1px,#e9ebef 1px,transparent 0) 0 0/22px 22px}
+#canvas{width:100%;height:100%;cursor:grab;display:block;touch-action:none}
 #canvas.dragging{cursor:grabbing}
 .zoombar{position:absolute;right:14px;bottom:14px;display:flex;flex-direction:column;gap:6px}
 .zoombar button{width:34px;height:34px;border-radius:8px;border:1px solid var(--line);background:#fff;cursor:pointer;font-size:15px}
 .empty-hint{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none}
 .empty-hint div{background:#fff;border:1px dashed var(--line);border-radius:12px;padding:26px 30px;text-align:center;color:var(--faint);font-size:13px;line-height:1.8}
-.drawer{position:absolute;right:0;top:0;bottom:0;width:420px;background:#fff;border-left:1px solid var(--line);transform:translateX(100%);transition:.25s;display:flex;flex-direction:column;z-index:20}
+.drawer{position:absolute;right:0;top:0;bottom:0;width:520px;background:#fff;border-left:1px solid var(--line);transform:translateX(100%);transition:.22s;display:flex;flex-direction:column;z-index:20}
 .drawer.on{transform:none}
-.drawer .hd{padding:14px 16px;border-bottom:1px solid var(--line)}
+.drawer .hd{padding:12px 16px;border-bottom:1px solid var(--line)}
 .drawer .hd h3{font-size:15px}
 .drawer .hd .meta{font-size:11.5px;color:var(--faint);margin-top:2px}
-.drawer .bd{padding:14px 16px;overflow:auto;flex:1;font-size:13px}
-.drawer .ft{padding:12px 16px;border-top:1px solid var(--line);display:flex;gap:8px;justify-content:flex-end}
-table{width:100%;border-collapse:collapse;font-size:12.5px;margin-bottom:12px}
-td,th{border-bottom:1px solid var(--line2);padding:6px 6px;text-align:left}
-th{color:var(--faint);font-weight:400}
-.lbl{font-size:12px;color:var(--faint);margin:10px 0 4px}
+.drawer .bd{padding:0;overflow:auto;flex:1}
+.drawer .ft{padding:10px 16px;border-top:1px solid var(--line);display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+.tbl{width:100%;border-collapse:collapse;font-size:12.5px}
+.tbl th{background:#fafbfc;color:var(--faint);font-weight:400;text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+.tbl td{padding:2px;border-bottom:1px solid var(--line2)}
+.tbl input{width:100%;border:1px solid transparent;border-radius:6px;padding:6px 7px;font-size:12.5px;background:transparent;outline:none}
+.tbl input:hover{border-color:var(--line)}
+.tbl input:focus{border-color:var(--brand);background:#fff}
+.tbl .del{width:26px;height:26px;border:0;background:transparent;color:var(--faint);cursor:pointer;border-radius:6px}
+.tbl .del:hover{background:#fdecee;color:var(--bad)}
+.tbl .add{margin:6px 8px 10px}
+.sec{padding:10px 12px 0;font-size:12px;color:var(--faint)}
+.sec b{color:var(--sub);font-size:12.5px}
+textarea.fb{width:calc(100% - 24px);margin:6px 12px 14px;border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:12.5px;outline:none;resize:vertical;min-height:64px}
 .gate{position:fixed;inset:0;background:var(--bg);display:grid;place-items:center;z-index:50}
 .gate .box{width:min(400px,92vw);background:#fff;border:1px solid var(--line);border-radius:12px;padding:22px}
 .gate h3{font-size:17px;margin-bottom:4px}
@@ -46,25 +55,24 @@ th{color:var(--faint);font-weight:400}
 .f{margin-bottom:12px}
 .f label{display:block;font-size:12.5px;color:var(--sub);margin-bottom:5px}
 .f input{width:100%;border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:13px;outline:none}
-.f input:focus{border-color:var(--brand)}
 .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(10px);background:#1d2129;color:#fff;font-size:13px;padding:8px 16px;border-radius:8px;opacity:0;pointer-events:none;transition:.2s;z-index:90;max-width:88vw}
 .toast.on{opacity:1;transform:translateX(-50%)}
-.node rect{transition:filter .15s}
-.node:hover rect{filter:brightness(.98)}
+.node{cursor:grab}
 .node text{font-size:12px;fill:var(--ink);pointer-events:none;user-select:none}
 .node .ver{fill:var(--brand);font-weight:600}
 .node .mini{font-size:10.5px;fill:var(--faint)}
-.node.current rect{stroke:var(--brand);stroke-width:2px}
-.node.hit rect{stroke:#f5a524;stroke-width:2px}
-.link{fill:none;stroke:#c9d3e3;stroke-width:1.5px}
+.node.dragged{cursor:grabbing}
+.node current rect{stroke-width:2px}
+.link{fill:none;stroke:#c9d3e3;stroke-width:1.6px}
+.hint{position:absolute;left:14px;bottom:14px;font-size:11.5px;color:var(--faint);background:rgba(255,255,255,.86);border:1px solid var(--line);border-radius:8px;padding:5px 9px}
 @media (max-width:640px){
   header{height:auto;flex-wrap:wrap;padding:8px 12px;gap:6px}
   header h1{font-size:16px}
   header .ops{width:100%;margin-left:0;flex-wrap:wrap}
-  .workspace{height:calc(100vh - 104px)}
-  .drawer{width:100%;top:auto;height:62vh;transform:translateY(100%);border-left:0;border-top:1px solid var(--line);border-radius:12px 12px 0 0}
+  .workspace{height:calc(100vh - 100px)}
+  .drawer{width:100%;top:auto;height:64vh;transform:translateY(100%);border-left:0;border-top:1px solid var(--line);border-radius:12px 12px 0 0}
   .drawer.on{transform:none}
-  .empty-hint div{padding:20px 16px;font-size:12.5px;max-width:86vw}
+  .hint{display:none}
 }
 </style>
 </head>
@@ -73,7 +81,7 @@ th{color:var(--faint);font-weight:400}
 <div class="gate" id="gate">
   <div class="box">
     <h3>配方工作站 · 思维导图</h3>
-    <p>输入口令和你自己的名字，进入后所有人看到同一份数据。</p>
+    <p>口令 + 名字进入；节点可以自由拖动，连线会跟着走；点节点展开可编辑的表格。</p>
     <div class="f"><label>口令</label><input id="gCode" type="password" placeholder="向管理员索取"></div>
     <div class="f"><label>你的名字</label><input id="gName" placeholder="如：罗涛"></div>
     <button class="btn primary" id="gGo" style="width:100%">进入</button>
@@ -81,29 +89,30 @@ th{color:var(--faint);font-weight:400}
 </div>
 
 <header>
-  <div><h1>配方工作站 · 模式二</h1><div class="sub">云端共享 · 思维导图 · 版本迭代 · 点开即改 · 备份带图</div></div>
+  <div><h1>配方工作站 · 模式二</h1><div class="sub">云端共享 · 可拖动导图 · 版本迭代 · 点开即改 · 备份带图</div></div>
   <div class="ops">
     <span class="status" id="st">连接中…</span>
     <button class="btn" id="btnExport" disabled title="阶段三开放">导出备份（含图）</button>
     <button class="btn" id="btnImport" disabled title="阶段三开放">导入备份</button>
     <button class="btn" id="btnBatch" disabled title="阶段三开放">批量导入图片</button>
-    <button class="btn primary" id="btnNew" disabled title="阶段二开放">+ 新建配方</button>
+    <button class="btn primary" id="btnNew" disabled title="阶段二后续开放">+ 新建配方</button>
     <button class="btn" id="btnOut">退出</button>
   </div>
 </header>
 
 <div class="workspace" id="workspace">
-  <svg id="canvas"><g id="viewport"></g></svg>
+  <svg id="canvas"><g id="viewport"><g id="linkLayer"></g><g id="nodeLayer"></g></g></svg>
   <div class="empty-hint" id="emptyHint" style="display:none"><div>暂无配方。点右上角 + 新建配方 开始第一次记录（不会预置任何数据）</div></div>
   <div class="zoombar">
     <button id="zoomIn" title="放大">＋</button>
     <button id="zoomOut" title="缩小">－</button>
-    <button id="resetView" title="回到全图">⤢</button>
+    <button id="resetView" title="回到全图（重置位置）">⤢</button>
   </div>
+  <div class="hint">拖动方框可自由摆位，连线会跟着走；滚轮缩放；点方框打开表格</div>
   <aside class="drawer" id="drawer">
     <div class="hd"><h3 id="dTitle">—</h3><div class="meta" id="dMeta"></div></div>
     <div class="bd" id="dBody"></div>
-    <div class="ft"><button class="btn" id="dClose">关闭</button></div>
+    <div class="ft" id="dFoot"></div>
   </aside>
 </div>
 
@@ -112,306 +121,337 @@ th{color:var(--faint);font-weight:400}
 <script>
 (function(){
 "use strict";
-/* ===== 配置：只改这一处 ===== */
-var SB_URL = "https://iaomspmxhblrxeheacjc.supabase.co";
-var SB_KEY = "sb_publishable_PyT0Lw0nAtywYKtZydn8xg_yqfXyg9w";
-var PAIR_CODE = "shipin2026";
-var MAX_MB = 20;
-/* =========================== */
+/* ===== 配置 ===== */
+var SB_URL="https://iaomspmxhblrxeheacjc.supabase.co";
+var SB_KEY="sb_publishable_PyT0Lw0nAtywYKtZydn8xg_yqfXyg9w";
+var PAIR_CODE="shipin2026";
+var MAX_MB=20;
+/* ================ */
 
 var H={apikey:SB_KEY,Authorization:"Bearer "+SB_KEY};
-var records=[];
-var name=localStorage.getItem("fx_name")||"";
-var mode="product";                 // product | category | month
+var records=[], mode="product", name=localStorage.getItem("fx_name")||"";
 var collapsed=JSON.parse(localStorage.getItem("fx_collapsed")||"{}");
-var search="";
-var view={x:20,y:20,k:1};
-var hitSet={};
+var savedPos=JSON.parse(localStorage.getItem("fx_pos")||"{}");
+var view={x:20,y:20,k:1}, pos={}, links=[], drag=null, currentId=null;
 
 function $(s){return document.querySelector(s);}
 function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];});}
 function toast(m){var t=$("#toast");t.textContent=m;t.classList.add("on");clearTimeout(window.__t);window.__t=setTimeout(function(){t.classList.remove("on");},4000);}
+function idNew(){var d=new Date(),p=function(n){return (n<10?"0":"")+n;};
+  return "R-"+d.getFullYear()+p(d.getMonth()+1)+p(d.getDate())+"-"+Math.random().toString(36).slice(2,6).toUpperCase();}
 
-/* ---------- 数据 ---------- */
-async function sb(path){
-  var res=await fetch(SB_URL+"/rest/v1"+path,{headers:Object.assign({},H,{"Content-Type":"application/json"})});
-  var t=await res.text();
-  var d=null; try{ d=t?JSON.parse(t):null; }catch(e){ d=t; }
-  if(!res.ok){ var e2=new Error((d&&d.message)||("HTTP "+res.status)); e2.code=d&&d.code; throw e2; }
+async function sb(path,opts){
+  opts=opts||{};
+  var res=await fetch(SB_URL+"/rest/v1"+path,{method:opts.method||"GET",
+    headers:Object.assign({},H,{"Content-Type":"application/json",Prefer:opts.prefer||"return=representation"}),
+    body:opts.body?JSON.stringify(opts.body):undefined});
+  var t=await res.text(); var d=null; try{d=t?JSON.parse(t):null;}catch(e){d=t;}
+  if(!res.ok){var e2=new Error((d&&d.message)||("HTTP "+res.status));e2.code=d&&d.code;throw e2;}
   return d;
 }
-async function loadAll(){ records=await sb("/records?select=*&order=updated_at.desc"); }
+async function loadAll(){records=await sb("/records?select=*&order=updated_at.desc");}
 
-/* ---------- 分区 ---------- */
 function zoneOf(r){
-  if(mode==="category") return r.category||"未分类";
-  if(mode==="month") return (r.date||"").slice(0,7)||"未填日期";
+  if(mode==="category")return r.category||"未分类";
+  if(mode==="month")return (r.date||"").slice(0,7)||"未填日期";
   return r.product||"未命名产品";
 }
 function verOf(r){var n=parseInt(r.version,10);return isNaN(n)?1:n;}
+function keyVer(r){return "v:"+r.id;}
 
-/* ---------- 构树 ---------- */
+/* ---------- 树与布局 ---------- */
 function buildTree(){
-  var zones={};
+  var z={};
   records.forEach(function(r){
-    var z=zoneOf(r);
-    (zones[z]=zones[z]||{}).products=zones[z].products||{};
-    var p=r.product||"未命名产品";
-    (zones[z].products[p]=zones[z].products[p]||[]).push(r);
+    var zn=zoneOf(r), pn=r.product||"未命名产品";
+    z[zn]=z[zn]||{}; (z[zn][pn]=z[zn][pn]||[]).push(r);
   });
-  return Object.keys(zones).sort().map(function(z){
-    var prods=zones[z].products;
-    return { name:z, children:Object.keys(prods).sort().map(function(p){
-      var list=prods[p].slice().sort(function(a,b){return verOf(a)-verOf(b);});
-      return { name:p, records:list };
-    })};
+  return Object.keys(z).sort().map(function(zn){
+    var prods=z[zn];
+    return {name:zn,children:Object.keys(prods).sort().map(function(pn){
+      return {name:pn,records:prods[pn].slice().sort(function(a,b){return verOf(a)-verOf(b);})};})};
   });
 }
-
-/* ---------- 布局（简单横向树，版本竖排） ---------- */
-function layout(tree){
-  var NODE_W=168, NODE_H=50, GAP_Y=62, X0=40, XZ=250, XP=470, XV=700;
-  var pos={}, links=[], y=40;
-  var rootY=0, zoneNodes=[];
-  var skipProd = (mode==="product");   // 按产品分区时，分区名就是产品名，省掉重复的一层
-  tree.forEach(function(z){
-    var zIndex=collapsed["z:"+z.name];
-    var zY0=y;
-    var prodRefs=[];
-    if(!zIndex && skipProd){
-      var recs=z.children.length?z.children[0].records:[];
-      recs.forEach(function(r){
-        var yy=y; y+=GAP_Y;
-        pos[r.id]={x:XV,y:yy,w:NODE_W,h:NODE_H,type:"ver",rec:r};
-        prodRefs.push({key:"",x:XP,y:yy+GAP_Y/2});
-        links.push({from:{x:XZ+NODE_W,y:yy+GAP_Y/2},to:{x:XV,y:yy+GAP_Y/2}});
+function autoLayout(){
+  var NODE_W=170,NODE_H=48,GAP=60, X0=30,XZ=240,XP=440,XV=640;
+  var p={},lk=[],y=30;
+  var skipProd=(mode==="product");
+  buildTree().forEach(function(z){
+    var zc=collapsed["z:"+z.name], zY, prodCenters=[];
+    if(!zc && skipProd){
+      z.children.forEach(function(pd){
+        pd.records.forEach(function(r){p[keyVer(r)]={x:XV,y:y,w:NODE_W,h:NODE_H};lk.push([ "z:"+z.name, keyVer(r)]);y+=GAP;});
       });
-    } else if(!zIndex){
-      z.children.forEach(function(p){
-        var pKey="p:"+z.name+"|"+p.name;
-        var pCollapsed=collapsed[pKey];
-        var pY0=y;
-        var recRefs=[];
-        if(!pCollapsed){
-          p.records.forEach(function(r,ri){
-            var yy=y; y+=GAP_Y;
-            pos[r.id]={x:XV,y:yy,w:NODE_W,h:NODE_H,type:"ver",rec:r};
-            recRefs.push({id:r.id,y:yy+GAP_Y/2});
-          });
+      zY = prodCenters.length?0:(y-GAP/2);
+    } else if(!zc){
+      z.children.forEach(function(pd){
+        var pk="p:"+z.name+"|"+pd.name, pc=collapsed[pk], start=y;
+        if(!pc){
+          pd.records.forEach(function(r){p[keyVer(r)]={x:XV,y:y,w:NODE_W,h:NODE_H};lk.push([pk,keyVer(r)]);y+=GAP;});
         }
-        var pY = pCollapsed ? (y+GAP_Y/2) : (recRefs.length? (recRefs[0].y+recRefs[recRefs.length-1].y)/2 : y+GAP_Y/2);
-        if(pCollapsed){ y+=GAP_Y; }
-        pos["p|"+z.name+"|"+p.name]={x:XP,y:pY-NODE_H/2,w:NODE_W,h:NODE_H,type:"prod",label:p.name,zone:z.name,count:p.records.length,collapsed:!!pCollapsed};
-        prodRefs.push({key:"p|"+z.name+"|"+p.name,x:XP,y:pY});
-        recRefs.forEach(function(rf){ links.push({from:{x:XP+NODE_W,y:pY},to:{x:XV,y:rf.y}}); });
+        var pcy = pc ? (y+=GAP, y-GAP/2) : (start+y-GAP)/2;
+        p[pk]={x:XP,y:pcy-NODE_H/2,w:NODE_W,h:NODE_H,type:"prod",label:pd.name,zone:z.name,count:pd.records.length,collapsed:!!pc};
+        prodCenters.push(pcy);
+      });
+      zY = prodCenters.length?(prodCenters[0]+prodCenters[prodCenters.length-1])/2:(y+=GAP,y-GAP/2);
+    } else { zY=(y+=GAP)-GAP/2; }
+    p["z:"+z.name]={x:XZ,y:zY-NODE_H/2,w:NODE_W,h:NODE_H,type:"zone",label:z.name,collapsed:!!zc,count:z.children.length};
+    if(!zc && !skipProd) prodCenters.forEach(function(pc){lk.push(["z:"+z.name,null]);});
+  });
+  // 根与分区连线
+  var zoneYs=Object.keys(p).filter(function(k){return k.indexOf("z:")===0;}).map(function(k){return p[k].y+NODE_H/2;});
+  var rootY=zoneYs.length?(zoneYs[0]+zoneYs[zoneYs.length-1])/2:30;
+  p["root"]={x:X0,y:rootY-NODE_H/2,w:NODE_W,h:NODE_H,type:"root",label:"全部配方",count:records.length};
+  // 补全连线（root→zone，zone→prod 或 zone→version）
+  lk=[];
+  buildTree().forEach(function(z){
+    lk.push(["root","z:"+z.name]);
+    if(collapsed["z:"+z.name]) return;
+    if(skipProd){
+      z.children.forEach(function(pd){ pd.records.forEach(function(r){ lk.push(["z:"+z.name,keyVer(r)]); }); });
+    } else {
+      z.children.forEach(function(pd){
+        var pk="p:"+z.name+"|"+pd.name;
+        lk.push(["z:"+z.name,pk]);
+        if(collapsed[pk]) return;
+        pd.records.forEach(function(r){ lk.push([pk,keyVer(r)]); });
       });
     }
-    var zY = zIndex ? (y+GAP_Y/2) : (prodRefs.length ? (prodRefs[0].y+prodRefs[prodRefs.length-1].y)/2 : y+GAP_Y/2);
-    if(zIndex){ y+=GAP_Y; }
-    pos["z|"+z.name]={x:XZ,y:zY-NODE_H/2,w:NODE_W,h:NODE_H,type:"zone",label:z.name,count:z.children.length,collapsed:!!zIndex};
-    zoneNodes.push({key:"z|"+z.name,x:XZ,y:zY});
-    if(!skipProd) prodRefs.forEach(function(pr){ links.push({from:{x:XZ+NODE_W,y:zY},to:{x:XP,y:pr.y}}); });
   });
-  var rootYv = zoneNodes.length ? (zoneNodes[0].y+zoneNodes[zoneNodes.length-1].y)/2 : 40;
-  pos["root"]={x:X0,y:rootYv-NODE_H/2,w:NODE_W,h:NODE_H,type:"root",label:"全部配方",count:records.length};
-  zoneNodes.forEach(function(zn){ links.push({from:{x:X0+NODE_W,y:rootYv},to:{x:XZ,y:zn.y}}); });
-  return {pos:pos,links:links,height:y+40};
-}
-
-/* ---------- 命中搜索 ---------- */
-function computeHits(){
-  hitSet={};
-  var kw=search.trim().toLowerCase();
-  if(kw.length<=1) return;
-  records.forEach(function(r){
-    var hay=[r.product,r.category,r.title,r.feedback,
-      (r.ingredients||[]).map(function(i){return [i.name,i.amount,i.note].join(" ");}).join(" "),
-      (r.process||[]).map(function(p){return [p.name,p.value,p.note].join(" ");}).join(" ")].join(" ").toLowerCase();
-    if(hay.indexOf(kw)>-1) hitSet[r.id]=1;
-  });
+  // 用保存的位置覆盖
+  Object.keys(p).forEach(function(k){ if(savedPos[k]) { p[k].x=savedPos[k].x; p[k].y=savedPos[k].y; } });
+  pos=p; links=lk.filter(function(l){return p[l[0]]&&p[l[1]];});
 }
 
 /* ---------- 绘制 ---------- */
-function renderMap(){
-  computeHits();
-  var tree=buildTree();
-  if(search.trim().length>1){
-    // 命中时自动展开所在分区与产品
-    Object.keys(hitSet).forEach(function(id){
-      var r=records.filter(function(x){return x.id===id;})[0]; if(!r) return;
-      collapsed["z:"+zoneOf(r)]=false;
-      collapsed["p:"+zoneOf(r)+"|"+(r.product||"未命名产品")]=false;
-    });
-  }
-  var L=layout(tree), pos=L.pos, links=L.links;
-  var parts=[];
-  // 连线
-  links.forEach(function(lk){
-    var x1=lk.from.x,y1=lk.from.y,x2=lk.to.x,y2=lk.to.y,mid=(x1+x2)/2;
-    parts.push('<path class="link" d="M'+x1+','+y1+' C'+mid+','+y1+' '+mid+','+y2+' '+x2+','+y2+'"/>');
+function draw(){
+  var nl=[],ll=[];
+  links.forEach(function(l){
+    var a=pos[l[0]],b=pos[l[1]]; if(!a||!b)return;
+    var x1=a.x+a.w,y1=a.y+a.h/2,x2=b.x,y2=b.y+b.h/2,mid=(x1+x2)/2;
+    ll.push('<path class="link" d="M'+x1+','+y1+' C'+mid+','+y1+' '+mid+','+y2+' '+x2+','+y2+'"/>');
   });
-  // 节点
   Object.keys(pos).forEach(function(k){
-    var n=pos[k];
-    var cls="node";
-    if(n.type==="ver"){
-      var r=n.rec;
-      if(hitSet[r.id]) cls+=" hit";
-      var badges=(r.recipe_image_url||r.product_image_url?" 📷":"")+((r.attachments||[]).length?(" 📎"+r.attachments.length):"");
-      parts.push('<g class="'+cls+'" data-node="ver" data-id="'+esc(r.id)+'" transform="translate('+n.x+','+n.y+')">'+
+    var n=pos[k], t=n.type||"ver";
+    if(t==="ver"){
+      var r=records.filter(function(x){return keyVer(x)===k;})[0]; if(!r)return;
+      var badge=(r.recipe_image_url?"📷":"")+((r.attachments||[]).length?(" 📎"+r.attachments.length):"");
+      nl.push('<g class="node" data-key="'+k+'" data-type="ver" transform="translate('+n.x+','+n.y+')">'+
         '<rect width="'+n.w+'" height="'+n.h+'" rx="9" fill="#fff" stroke="#e5e6eb"/>'+
-        '<text x="10" y="19">'+esc((r.product||"").slice(0,10))+' <tspan class="ver">v'+verOf(r)+'</tspan></text>'+
-        '<text class="mini" x="10" y="36">'+esc(r.date||"未填日期")+' · '+esc(r.updated_by||"—")+esc(badges)+'</text></g>');
-    } else if(n.type==="prod"){
-      parts.push('<g class="'+cls+'" data-node="prod" data-zone="'+esc(n.zone)+'" data-name="'+esc(n.label)+'" transform="translate('+n.x+','+n.y+')">'+
-        '<rect width="'+n.w+'" height="'+n.h+'" rx="9" fill="#f2f6fd" stroke="#cfdff7"/>'+
-        '<text x="10" y="21">'+esc(n.label.slice(0,11))+(n.collapsed?" ▸":"")+'</text>'+
-        '<text class="mini" x="10" y="37">'+n.count+' 个版本</text></g>');
-    } else if(n.type==="zone"){
-      parts.push('<g class="'+cls+'" data-node="zone" data-name="'+esc(n.label)+'" transform="translate('+n.x+','+n.y+')">'+
+        '<text x="10" y="19">'+esc((r.product||"").slice(0,9))+' <tspan class="ver">v'+verOf(r)+'</tspan></text>'+
+        '<text class="mini" x="10" y="35">'+esc(r.date||"—")+' · '+esc(r.updated_by||"—")+esc(badge)+'</text></g>');
+    } else if(t==="prod"){
+      nl.push('<g class="node" data-key="'+esc(k)+'" data-type="prod" transform="translate('+n.x+','+n.y+')">'+
+        '<rect width="'+n.w+'" height="'+n.h+'" rx="9" fill="#f4f8fd" stroke="#cfdff7"/>'+
+        '<text x="10" y="20">'+esc(n.label.slice(0,10))+(n.collapsed?" ▸":"")+'</text>'+
+        '<text class="mini" x="10" y="35">'+n.count+' 个版本</text></g>');
+    } else if(t==="zone"){
+      nl.push('<g class="node" data-key="'+esc(k)+'" data-type="zone" transform="translate('+n.x+','+n.y+')">'+
         '<rect width="'+n.w+'" height="'+n.h+'" rx="9" fill="#eef3fb" stroke="#cfdff7"/>'+
-        '<text x="10" y="21">'+esc(n.label.slice(0,11))+(n.collapsed?" ▸":"")+'</text>'+
-        '<text class="mini" x="10" y="37">'+n.count+(mode==='product'?' 个版本':' 个产品')+'</text></g>');
+        '<text x="10" y="20">'+esc(n.label.slice(0,10))+(n.collapsed?" ▸":"")+'</text>'+
+        '<text class="mini" x="10" y="35">'+n.count+(mode==="product"?" 个版本":" 个产品")+'</text></g>');
     } else {
-      parts.push('<g class="'+cls+'" data-node="root" transform="translate('+n.x+','+n.y+')">'+
+      nl.push('<g class="node" data-key="root" data-type="root" transform="translate('+n.x+','+n.y+')">'+
         '<rect width="'+n.w+'" height="'+n.h+'" rx="10" fill="#1f5fbf"/>'+
-        '<text x="10" y="21" fill="#fff">全部配方</text>'+
-        '<text class="mini" x="10" y="37" fill="#dbe7f8">'+n.count+' 条记录</text></g>');
+        '<text x="10" y="20" fill="#fff">全部配方</text>'+
+        '<text class="mini" x="10" y="35" fill="#dbe7f8">'+n.count+' 条记录</text></g>');
     }
   });
-  $("#viewport").innerHTML=parts.join("");
+  $("#linkLayer").innerHTML=ll.join("");
+  $("#nodeLayer").innerHTML=nl.join("");
+  $("#emptyHint").style.display = records.length? "none":"grid";
   applyView();
-  // 空状态
-  $("#emptyHint").style.display = records.length===0 ? "grid" : "none";
-  // 搜索无命中
-  if(records.length && search.trim().length>1 && Object.keys(hitSet).length===0){
-    $("#emptyHint").innerHTML='<div>没有符合条件的配方。试试清空搜索词或切换分区</div>';
-    $("#emptyHint").style.display="grid";
-  } else {
-    $("#emptyHint").innerHTML='<div>暂无配方。点右上角 + 新建配方 开始第一次记录（不会预置任何数据）</div>';
-  }
 }
-function applyView(){ $("#viewport").setAttribute("transform","translate("+view.x+","+view.y+") scale("+view.k+")"); }
+function drawLinksOnly(){
+  var ll=[];
+  links.forEach(function(l){
+    var a=pos[l[0]],b=pos[l[1]]; if(!a||!b)return;
+    var x1=a.x+a.w,y1=a.y+a.h/2,x2=b.x,y2=b.y+b.h/2,mid=(x1+x2)/2;
+    ll.push('<path class="link" d="M'+x1+','+y1+' C'+mid+','+y1+' '+mid+','+y2+' '+x2+','+y2+'"/>');
+  });
+  $("#linkLayer").innerHTML=ll.join("");
+}
+function applyView(){$("#viewport").setAttribute("transform","translate("+view.x+","+view.y+") scale("+view.k+")");}
 function fitView(){
-  var tree=buildTree(); var L=layout(tree);
   var maxX=0,maxY=0;
-  Object.keys(L.pos).forEach(function(k){ maxX=Math.max(maxX,L.pos[k].x+L.pos[k].w); maxY=Math.max(maxY,L.pos[k].y+L.pos[k].h); });
-  var W=$("#workspace").clientWidth||1000, Hh=$("#workspace").clientHeight||600;
-  var k=Math.min(1, (W-60)/Math.max(400,maxX+40), (Hh-60)/Math.max(300,maxY+40));
-  view.k=Math.max(0.35,Math.min(1.2,k));
-  view.x=24; view.y=24;
-  applyView();
+  Object.keys(pos).forEach(function(k){maxX=Math.max(maxX,pos[k].x+pos[k].w);maxY=Math.max(maxY,pos[k].y+pos[k].h);});
+  var W=$("#workspace").clientWidth||1000,Hh=$("#workspace").clientHeight||600;
+  var k=Math.min(1,(W-80)/Math.max(420,maxX+60),(Hh-80)/Math.max(300,maxY+60));
+  view.k=Math.max(0.35,Math.min(1.1,k)); view.x=30; view.y=30; applyView();
 }
 
-/* ---------- 交互 ---------- */
-$("#canvas").addEventListener("click",function(e){
-  var g=e.target.closest("[data-node]"); if(!g) return;
-  var t=g.getAttribute("data-node");
-  if(t==="zone"){ var z=g.getAttribute("data-name"); collapsed["z:"+z]=!collapsed["z:"+z]; saveCollapsed(); renderMap(); return; }
-  if(t==="prod"){ var z2=g.getAttribute("data-zone"), p=g.getAttribute("data-name"); var k="p:"+z2+"|"+p; collapsed[k]=!collapsed[k]; saveCollapsed(); renderMap(); return; }
-  if(t==="ver"){ openDrawer(g.getAttribute("data-id")); return; }
-});
-function saveCollapsed(){ try{localStorage.setItem("fx_collapsed",JSON.stringify(collapsed));}catch(e){} }
-
-/* 拖动平移 */
-var drag=null;
+/* ---------- 交互：拖动节点 / 点开表格 ---------- */
 $("#canvas").addEventListener("pointerdown",function(e){
-  drag={x:e.clientX,y:e.clientY,vx:view.x,vy:view.y,moved:false};
-  $("#canvas").classList.add("dragging");
+  var g=e.target.closest("[data-key]");
+  if(g){
+    var k=g.getAttribute("data-key");
+    drag={key:k,startX:e.clientX,startY:e.clientY,ox:pos[k].x,oy:pos[k].y,moved:false,el:g};
+    g.classList.add("dragged");
+    try{ if($("#canvas").setPointerCapture) $("#canvas").setPointerCapture(e.pointerId); }catch(err){}
+  } else {
+    drag={pan:true,startX:e.clientX,startY:e.clientY,vx:view.x,vy:view.y,moved:false};
+    $("#canvas").classList.add("dragging");
+  }
 });
 window.addEventListener("pointermove",function(e){
-  if(!drag) return;
-  var dx=e.clientX-drag.x, dy=e.clientY-drag.y;
+  if(!drag)return;
+  var dx=e.clientX-drag.startX, dy=e.clientY-drag.startY;
   if(Math.abs(dx)+Math.abs(dy)>3) drag.moved=true;
-  view.x=drag.vx+dx; view.y=drag.vy+dy; applyView();
+  if(drag.pan){ view.x=drag.vx+dx; view.y=drag.vy+dy; applyView(); return; }
+  pos[drag.key].x=drag.ox+dx/view.k;
+  pos[drag.key].y=drag.oy+dy/view.k;
+  drag.el.setAttribute("transform","translate("+pos[drag.key].x+","+pos[drag.key].y+")");
+  drawLinksOnly();
 });
-window.addEventListener("pointerup",function(){ drag=null; $("#canvas").classList.remove("dragging"); });
+window.addEventListener("pointerup",function(e){
+  if(!drag)return;
+  if(drag.pan){ $("#canvas").classList.remove("dragging"); }
+  else {
+    drag.el.classList.remove("dragged");
+    savedPos[drag.key]={x:pos[drag.key].x,y:pos[drag.key].y};
+    try{localStorage.setItem("fx_pos",JSON.stringify(savedPos));}catch(err){}
+    if(!drag.moved) onClickNode(drag.key);
+  }
+  drag=null;
+});
+function onClickNode(k){
+  var t=pos[k].type||"ver";
+  if(t==="zone"){ collapsed[k]=!collapsed[k]; persist(); autoLayout(); draw(); return; }
+  if(t==="prod"){ collapsed[k]=!collapsed[k]; persist(); autoLayout(); draw(); return; }
+  if(t==="ver"){ openEditor(records.filter(function(r){return keyVer(r)===k;})[0]); }
+}
+function persist(){try{localStorage.setItem("fx_collapsed",JSON.stringify(collapsed));}catch(e){}}
 $("#canvas").addEventListener("wheel",function(e){
   e.preventDefault();
-  var k=e.deltaY<0?1.12:1/1.12;
-  var nk=Math.max(0.3,Math.min(2.5,view.k*k));
-  var rect=$("#canvas").getBoundingClientRect();
-  var mx=e.clientX-rect.left, my=e.clientY-rect.top;
-  view.x=mx-(mx-view.x)*(nk/view.k);
-  view.y=my-(my-view.y)*(nk/view.k);
-  view.k=nk; applyView();
+  var nk=Math.max(0.3,Math.min(2.5,view.k*(e.deltaY<0?1.12:1/1.12)));
+  var rect=$("#canvas").getBoundingClientRect(),mx=e.clientX-rect.left,my=e.clientY-rect.top;
+  view.x=mx-(mx-view.x)*(nk/view.k); view.y=my-(my-view.y)*(nk/view.k); view.k=nk; applyView();
 },{passive:false});
-$("#zoomIn").onclick=function(){ view.k=Math.min(2.5,view.k*1.2); applyView(); };
-$("#zoomOut").onclick=function(){ view.k=Math.max(0.3,view.k/1.2); applyView(); };
-$("#resetView").onclick=fitView;
+$("#zoomIn").onclick=function(){view.k=Math.min(2.5,view.k*1.2);applyView();};
+$("#zoomOut").onclick=function(){view.k=Math.max(0.3,view.k/1.2);applyView();};
+$("#resetView").onclick=function(){savedPos={};try{localStorage.removeItem("fx_pos");}catch(e){};autoLayout();fitView();};
 
-/* ---------- 抽屉（只读，阶段二再做编辑） ---------- */
-function openDrawer(id){
-  var r=records.filter(function(x){return x.id===id;})[0]; if(!r) return;
+/* ---------- 表格抽屉 ---------- */
+function rowIng(i){return '<tr data-row="ing"><td><input data-k="name" value="'+esc(i.name)+'" placeholder="原料名"></td>'+
+  '<td style="width:78px"><input data-k="amount" value="'+esc(i.amount)+'" placeholder="用量"></td>'+
+  '<td style="width:62px"><input data-k="unit" value="'+esc(i.unit||"g")+'" placeholder="单位"></td>'+
+  '<td><input data-k="note" value="'+esc(i.note)+'" placeholder="备注"></td>'+
+  '<td style="width:30px"><button class="del" data-del>×</button></td></tr>';}
+function rowProc(p){return '<tr data-row="proc"><td><input data-k="name" value="'+esc(p.name)+'" placeholder="参数"></td>'+
+  '<td style="width:110px"><input data-k="value" value="'+esc(p.value)+'" placeholder="数值"></td>'+
+  '<td><input data-k="note" value="'+esc(p.note)+'" placeholder="备注"></td>'+
+  '<td style="width:30px"><button class="del" data-del>×</button></td></tr>';}
+
+function openEditor(r){
+  if(!r)return;
+  currentId=r.id;
   var same=records.filter(function(x){return (x.product||"")===(r.product||"");}).sort(function(a,b){return verOf(a)-verOf(b);});
   var idx=same.findIndex(function(x){return x.id===r.id;});
-  $("#dTitle").textContent=(r.product||"")+" · v"+verOf(r);
-  $("#dMeta").textContent="编号 "+r.id+" ｜ "+((r.date)||"—")+" ｜ 第 "+(idx+1)+" 版 / 共 "+same.length+" 版 ｜ 修改人 "+(r.updated_by||"—");
-  var ing=(r.ingredients||[]).map(function(i){return "<tr><td>"+esc(i.name)+"</td><td>"+esc(i.amount)+"</td><td>"+esc(i.unit)+"</td><td>"+esc(i.note)+"</td></tr>";}).join("");
-  var proc=(r.process||[]).map(function(p){return "<tr><td>"+esc(p.name)+"</td><td>"+esc(p.value)+"</td><td>"+esc(p.note)+"</td></tr>";}).join("");
-  var imgs="";
-  if(r.recipe_image_url) imgs+='<img src="'+esc(r.recipe_image_url)+'" style="width:88px;height:66px;object-fit:cover;border:1px solid var(--line);border-radius:8px;margin-right:8px">';
-  if(r.product_image_url) imgs+='<img src="'+esc(r.product_image_url)+'" style="width:88px;height:66px;object-fit:cover;border:1px solid var(--line);border-radius:8px">';
+  $("#dTitle").textContent=(r.product||"")+" · v"+verOf(r)+"　（直接改表格）";
+  $("#dMeta").textContent="编号 "+r.id+" ｜ "+(r.date||"—")+" ｜ 第 "+(idx+1)+" 版 / 共 "+same.length+" 版 ｜ 修改人 "+(r.updated_by||"—");
+  var ings=(r.ingredients&&r.ingredients.length?r.ingredients:[{name:"",amount:"",unit:"g",note:""}]).map(rowIng).join("");
+  var procs=(r.process&&r.process.length?r.process:[{name:"",value:"",note:""}]).map(rowProc).join("");
   $("#dBody").innerHTML=
-    '<div class="lbl">配方用量</div><table><tr><th>原料</th><th>用量</th><th>单位</th><th>备注</th></tr>'+(ing||'<tr><td colspan="4" style="color:#86909c">未填</td></tr>')+'</table>'+
-    '<div class="lbl">工艺参数</div><table><tr><th>参数</th><th>数值</th><th>备注</th></tr>'+(proc||'<tr><td colspan="3" style="color:#86909c">未填</td></tr>')+'</table>'+
-    '<div class="lbl">成品反馈</div><div style="white-space:pre-wrap;color:var(--sub)">'+(r.feedback?esc(r.feedback):"未填")+'</div>'+
-    (imgs?'<div class="lbl">图片</div><div>'+imgs+'</div>':'')+
-    '<div class="lbl">附件</div><div style="color:var(--sub)">'+((r.attachments||[]).length?r.attachments.map(function(a){return '<a href="'+esc(a.url)+'" target="_blank">'+esc(a.name)+'</a>';}).join("<br>"):"未上传附件")+'</div>'+
-    '<div style="margin-top:14px;font-size:11.5px;color:#86909c">阶段二开放：直接在抽屉里改用量并保存为新版本。</div>';
+    '<div class="sec"><b>配方用量</b>（改完点保存，生成新版本）</div>'+
+    '<table class="tbl"><thead><tr><th>原料名</th><th>用量</th><th>单位</th><th>备注</th><th></th></tr></thead><tbody id="tbIng">'+ings+'</tbody></table>'+
+    '<button class="btn sm add" data-add="ing">+ 添加一行</button>'+
+    '<div class="sec"><b>工艺参数</b></div>'+
+    '<table class="tbl"><thead><tr><th>参数</th><th>数值</th><th>备注</th><th></th></tr></thead><tbody id="tbProc">'+procs+'</tbody></table>'+
+    '<button class="btn sm add" data-add="proc">+ 添加一行</button>'+
+    '<div class="sec"><b>成品反馈</b>（保存时按版本规则清空，避免带上旧反馈）</div>'+
+    '<textarea class="fb" id="fbBox" placeholder="这一版的成品反馈">'+esc(r.feedback||"")+'</textarea>'+
+    '<div style="height:10px"></div>';
+  $("#dFoot").innerHTML=
+    '<button class="btn danger" id="dDel">删除这条</button>'+
+    '<button class="btn" id="dPrev" '+(idx>0?'':'disabled')+'>上一版</button>'+
+    '<button class="btn" id="dNext" '+(idx<same.length-1?'':'disabled')+'>下一版</button>'+
+    '<button class="btn primary" id="dSave">保存为新版本</button>';
   $("#drawer").classList.add("on");
-  toast("只读预览（编辑与派生在阶段二）");
+  $("#dBody").querySelectorAll("[data-add]").forEach(function(b){
+    b.onclick=function(){
+      var tb=b.dataset.add==="ing"?$("#tbIng"):$("#tbProc");
+      tb.insertAdjacentHTML("beforeend", b.dataset.add==="ing"?rowIng({name:"",amount:"",unit:"g",note:""}):rowProc({name:"",value:"",note:""}));
+      bindDel();
+    };
+  });
+  bindDel();
+  $("#dDel").onclick=function(){ delRecord(r); };
+  $("#dPrev").onclick=function(){ if(idx>0) openEditor(same[idx-1]); };
+  $("#dNext").onclick=function(){ if(idx<same.length-1) openEditor(same[idx+1]); };
+  $("#dSave").onclick=function(){ saveNewVersion(r); };
 }
-$("#dClose").onclick=function(){ $("#drawer").classList.remove("on"); };
+function bindDel(){
+  $("#dBody").querySelectorAll("[data-del]").forEach(function(b){
+    b.onclick=function(){
+      var tb=b.closest("tbody");
+      if(tb.querySelectorAll("tr").length<=1){toast("至少保留一行");return;}
+      b.closest("tr").remove();
+    };
+  });
+}
+function collectRows(tbSel){
+  return Array.prototype.map.call(document.querySelectorAll(tbSel+" tr"),function(tr){
+    var o={}; tr.querySelectorAll("input").forEach(function(i){o[i.dataset.k]=i.value.trim();});
+    return o;
+  }).filter(function(o){return (o.name||o.value||"").length;});
+}
+async function saveNewVersion(r){
+  var ings=collectRows("#tbIng"), procs=collectRows("#tbProc");
+  if(!ings.length){toast("至少填一行用量");return;}
+  if(!confirm("保存后会生成新版本 v"+(verOf(r)+1)+"，旧版本 v"+verOf(r)+" 保留，反馈与附件不复制。继续？"))return;
+  var btn=$("#dSave"); btn.disabled=true; btn.textContent="保存中…";
+  try{
+    var row={product:r.product,category:r.category||"",version:verOf(r)+1,date:new Date().toISOString().slice(0,10),
+      title:r.title||"",ingredients:ings,process:procs,feedback:"",parent_id:r.id,source:"manual",
+      recipe_image_url:"",product_image_url:"",attachments:[],updated_by:name};
+    row.id=idNew();
+    await sb("/records",{method:"POST",body:row});
+    await loadAll(); autoLayout(); draw(); openEditor(records.filter(function(x){return x.id===row.id;})[0]);
+    toast("已保存为新版本 v"+verOf(row)+"（旧版本仍在）");
+  }catch(e){toast("保存失败："+e.message);}
+  finally{ btn.disabled=false; btn.textContent="保存为新版本"; }
+}
+async function deleteByUrl(url){
+  if(!url||url.indexOf(SB_URL+"/storage/v1/object/public/files/")!==0)return;
+  var p=decodeURIComponent(url.split("/object/public/files/")[1]);
+  try{await fetch(SB_URL+"/storage/v1/object/files/"+p,{method:"DELETE",headers:H});}catch(e){}
+}
+async function delRecord(r){
+  if(!confirm("删除后无法恢复，版本链上的后续版本不会跟着删，图片与附件会一起删除。确认删除 v"+verOf(r)+"？"))return;
+  try{
+    await deleteByUrl(r.recipe_image_url); await deleteByUrl(r.product_image_url);
+    for(var i=0;i<(r.attachments||[]).length;i++) await deleteByUrl(r.attachments[i].url);
+    await sb("/records?id=eq."+encodeURIComponent(r.id),{method:"DELETE",prefer:"return=minimal"});
+    await loadAll(); autoLayout(); draw(); $("#drawer").classList.remove("on"); toast("已删除");
+  }catch(e){toast("删除失败："+e.message);}
+}
 
 /* ---------- 顶栏 ---------- */
-$("#btnOut").onclick=function(){ sessionStorage.removeItem("fx_pass"); location.reload(); };
-$("#btnExport").disabled=true; $("#btnImport").disabled=true; $("#btnBatch").disabled=true; $("#btnNew").disabled=true;
-
-/* 分区切换（简易：右键循环？改为键盘 1/2/3 + 双击根节点） */
+$("#btnOut").onclick=function(){sessionStorage.removeItem("fx_pass");location.reload();};
 document.addEventListener("keydown",function(e){
-  if(e.key==="1"){ mode="product"; renderMap(); toast("分区：按产品名"); }
-  if(e.key==="2"){ mode="category"; renderMap(); toast("分区：按品类"); }
-  if(e.key==="3"){ mode="month"; renderMap(); toast("分区：按时间（年-月）"); }
+  if(e.key==="Escape") $("#drawer").classList.remove("on");
 });
 
 /* ---------- 启动 ---------- */
-async function boot(){
-  if(sessionStorage.getItem("fx_pass")==="1" && name){
-    $("#gate").style.display="none";
-    start();
-  } else {
-    $("#gate").style.display="grid";
-  }
-}
-$("#gGo").onclick=function(){
-  if($("#gCode").value.trim()!==PAIR_CODE){ toast("口令不对"); return; }
-  var n=$("#gName").value.trim();
-  if(!n){ toast("请填名字"); return; }
-  name=n; localStorage.setItem("fx_name",n); sessionStorage.setItem("fx_pass","1");
-  $("#gate").style.display="none";
-  start();
-};
-$("#gCode").addEventListener("keydown",function(e){ if(e.key==="Enter") $("#gGo").click(); });
-
 async function start(){
   try{
     await loadAll();
-    $("#st").textContent="已连接云端 · "+records.length+" 条记录";
-    $("#st").className="status ok";
-    renderMap();
-    fitView();
+    $("#st").textContent="已连接云端 · "+records.length+" 条记录"; $("#st").className="status ok";
+    autoLayout(); draw(); fitView();
   }catch(e){
-    $("#st").textContent="连接失败";
-    $("#st").className="status";
-    if(e.code==="PGRST205"){
-      toast("数据库还没建表：去 Supabase 控制台 → SQL Editor → 粘贴 schema.sql 整段 → Run，然后刷新本页");
-    } else {
-      toast("读取失败："+e.message+"（检查网络，或确认 key 与项目地址正确）");
-    }
+    $("#st").textContent="连接失败"; $("#st").className="status";
+    if(e.code==="PGRST205") toast("数据库还没建表：去 Supabase 控制台 → SQL Editor → 粘贴 schema.sql → Run，然后刷新");
+    else toast("读取失败："+e.message+"（检查网络，或确认 key 与项目地址）");
   }
 }
-boot();
+$("#gGo").onclick=function(){
+  if($("#gCode").value.trim()!==PAIR_CODE){toast("口令不对");return;}
+  var n=$("#gName").value.trim(); if(!n){toast("请填名字");return;}
+  name=n; localStorage.setItem("fx_name",n); sessionStorage.setItem("fx_pass","1");
+  $("#gate").style.display="none"; start();
+};
+$("#gCode").addEventListener("keydown",function(e){if(e.key==="Enter")$("#gGo").click();});
+if(sessionStorage.getItem("fx_pass")==="1" && name){ $("#gate").style.display="none"; start(); }
 })();
 </script>
 </body>
