@@ -74,6 +74,7 @@ textarea.fb{width:calc(100% - 24px);margin:6px 12px 14px;border:1px solid var(--
   .drawer.on{transform:none}
   .hint{display:none}
 }
+.seg{padding:2px;border:1px solid var(--line);border-radius:8px;background:#f7f8fa;display:inline-flex;gap:2px;margin-right:4px}.seg a{font-size:12.5px;padding:4px 10px;border-radius:6px;color:var(--sub);text-decoration:none;white-space:nowrap}.seg a.on{background:#fff;color:var(--brand);font-weight:600}
 </style>
 </head>
 <body>
@@ -91,7 +92,7 @@ textarea.fb{width:calc(100% - 24px);margin:6px 12px 14px;border:1px solid var(--
 <header>
   <div><h1>配方工作站 · 模式二</h1><div class="sub">云端共享 · 可拖动导图 · 版本迭代 · 点开即改 · 备份带图</div></div>
   <div class="ops">
-    <span class="status" id="st">连接中…</span>
+    <span class="seg"><a href="https://luotao-ai.github.io/formula-station/">列表</a><a class="on" href="./index.html">思维导图</a></span><span class="status" id="st">连接中…</span>
     <button class="btn" id="btnExport" disabled title="阶段三开放">导出备份（含图）</button>
     <button class="btn" id="btnImport" disabled title="阶段三开放">导入备份</button>
     <button class="btn" id="btnBatch" disabled title="阶段三开放">批量导入图片</button>
