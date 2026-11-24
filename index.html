@@ -182,14 +182,14 @@ function autoLayout(){
     var zc=collapsed["z:"+z.name], zY, prodCenters=[];
     if(!zc && skipProd){
       z.children.forEach(function(pd){
-        pd.records.forEach(function(r){p[keyVer(r)]={x:XV,y:y,w:NODE_W,h:NODE_H};lk.push([ "z:"+z.name, keyVer(r)]);y+=GAP;});
+        pd.records.forEach(function(r){p[keyVer(r)]={x:XV,y:y,w:NODE_W,h:NODE_H};y+=GAP;});
       });
       zY = prodCenters.length?0:(y-GAP/2);
     } else if(!zc){
       z.children.forEach(function(pd){
         var pk="p:"+z.name+"|"+pd.name, pc=collapsed[pk], start=y;
         if(!pc){
-          pd.records.forEach(function(r){p[keyVer(r)]={x:XV,y:y,w:NODE_W,h:NODE_H};lk.push([pk,keyVer(r)]);y+=GAP;});
+          pd.records.forEach(function(r){p[keyVer(r)]={x:XV,y:y,w:NODE_W,h:NODE_H};y+=GAP;});
         }
         var pcy = pc ? (y+=GAP, y-GAP/2) : (start+y-GAP)/2;
         p[pk]={x:XP,y:pcy-NODE_H/2,w:NODE_W,h:NODE_H,type:"prod",label:pd.name,zone:z.name,count:pd.records.length,collapsed:!!pc};
@@ -209,16 +209,17 @@ function autoLayout(){
   buildTree().forEach(function(z){
     lk.push(["root","z:"+z.name]);
     if(collapsed["z:"+z.name]) return;
-    if(skipProd){
-      z.children.forEach(function(pd){ pd.records.forEach(function(r){ lk.push(["z:"+z.name,keyVer(r)]); }); });
-    } else {
-      z.children.forEach(function(pd){
-        var pk="p:"+z.name+"|"+pd.name;
-        lk.push(["z:"+z.name,pk]);
-        if(collapsed[pk]) return;
-        pd.records.forEach(function(r){ lk.push([pk,keyVer(r)]); });
+    z.children.forEach(function(pd){
+      var pk="p:"+z.name+"|"+pd.name;
+      var container = skipProd ? ("z:"+z.name) : pk;
+      if(!skipProd) lk.push(["z:"+z.name,pk]);
+      if(!skipProd && collapsed[pk]) return;
+      var ids={}; pd.records.forEach(function(r){ ids[r.id]=1; });
+      pd.records.forEach(function(r){
+        var parentKey = (r.parent_id && ids[r.parent_id]) ? ("v:"+r.parent_id) : container;
+        lk.push([parentKey, keyVer(r)]);      // 版本链：父版本→子版本，无父则挂到分区/产品
       });
-    }
+    });
   });
   // 用保存的位置覆盖
   Object.keys(p).forEach(function(k){ if(savedPos[k]) { p[k].x=savedPos[k].x; p[k].y=savedPos[k].y; } });
