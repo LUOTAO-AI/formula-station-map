@@ -75,6 +75,10 @@ textarea.fb{width:calc(100% - 24px);margin:6px 12px 14px;border:1px solid var(--
   .hint{display:none}
 }
 .seg{padding:2px;border:1px solid var(--line);border-radius:8px;background:#f7f8fa;display:inline-flex;gap:2px;margin-right:4px}.seg a{font-size:12.5px;padding:4px 10px;border-radius:6px;color:var(--sub);text-decoration:none;white-space:nowrap}.seg a.on{background:#fff;color:var(--brand);font-weight:600}
+.askmask{position:fixed;inset:0;background:rgba(29,33,41,.4);display:grid;place-items:center;z-index:200;padding:20px}
+.askbox{background:#fff;border-radius:12px;max-width:420px;width:100%;padding:18px;box-shadow:0 12px 40px rgba(0,0,0,.18)}
+.askmsg{font-size:13.5px;line-height:1.7;white-space:pre-wrap;color:var(--ink)}
+.askfoot{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}
 </style>
 </head>
 <body>
@@ -401,7 +405,7 @@ function collectRows(tbSel){
 async function saveNewVersion(r){
   var ings=collectRows("#tbIng"), procs=collectRows("#tbProc");
   if(!ings.length){toast("至少填一行用量");return;}
-  if(!confirm("保存后会生成新版本 v"+(verOf(r)+1)+"，旧版本 v"+verOf(r)+" 保留，反馈与附件不复制。继续？"))return;
+  if(!(await askConfirm("保存后会生成新版本 v"+(verOf(r)+1)+"，旧版本 v"+verOf(r)+" 保留，反馈与附件不复制。继续？")))return;
   var btn=$("#dSave"); btn.disabled=true; btn.textContent="保存中…";
   try{
     var row={product:r.product,category:r.category||"",version:verOf(r)+1,date:new Date().toISOString().slice(0,10),
@@ -420,7 +424,7 @@ async function deleteByUrl(url){
   try{await fetch(SB_URL+"/storage/v1/object/files/"+p,{method:"DELETE",headers:H});}catch(e){}
 }
 async function delRecord(r){
-  if(!confirm("删除后无法恢复，版本链上的后续版本不会跟着删，图片与附件会一起删除。确认删除 v"+verOf(r)+"？"))return;
+  if(!(await askConfirm("删除后无法恢复，版本链上的后续版本不会跟着删，图片与附件会一起删除。确认删除 v"+verOf(r)+"？")))return;
   try{
     await deleteByUrl(r.recipe_image_url); await deleteByUrl(r.product_image_url);
     for(var i=0;i<(r.attachments||[]).length;i++) await deleteByUrl(r.attachments[i].url);
@@ -531,7 +535,7 @@ async function doImportFile(f){
     if(/\.json$/i.test(f.name)){
       var d=JSON.parse(await f.text()),recs=Array.isArray(d)?d:d.records;
       if(!Array.isArray(recs))throw new Error("这个 JSON 里没有 records");
-      if(!confirm("纯 JSON 备份不含图片与附件，将导入 "+recs.length+" 条记录（不删除现有数据），继续？"))return;
+      if(!(await askConfirm("纯 JSON 备份不含图片与附件，将导入 "+recs.length+" 条记录（不删除现有数据），继续？")))return;
       await upsertRecords(recs.map(function(r){return Object.assign({},r,{recipe_image_url:"",product_image_url:""});}));
       await reloadAndDraw();toast("已导入 "+recs.length+" 条（图片需重新上传）");return;
     }
@@ -540,7 +544,7 @@ async function doImportFile(f){
     if(!me)throw new Error("压缩包里没有 meta.json，不是本系统导出的备份");
     var meta=JSON.parse(new TextDecoder().decode(me.data));
     var imgs=entries.filter(function(e){return e.name.indexOf("images/")===0;});
-    if(!confirm("将恢复 "+meta.records.length+" 条记录、"+imgs.length+" 个图片文件（不删除现有数据）。继续？"))return;
+    if(!(await askConfirm("将恢复 "+meta.records.length+" 条记录、"+imgs.length+" 个图片文件（不删除现有数据）。继续？")))return;
     var map={};
     for(var i=0;i<imgs.length;i++){
       var e=imgs[i],nameOnly=e.name.split("/").pop();
@@ -566,7 +570,7 @@ async function doBatch(files){
   var over=files.filter(function(f){return f.size>MAX_MB*1024*1024;});
   if(over.length){toast("有 "+over.length+" 个文件超 "+MAX_MB+"MB，已跳过");files=files.filter(function(f){return f.size<=MAX_MB*1024*1024;});}
   if(!files.length)return;
-  if(!confirm("将用这 "+files.length+" 张图片各建一条 v1 记录（产品名取文件名，用量与反馈留空）。继续？"))return;
+  if(!(await askConfirm("将用这 "+files.length+" 张图片各建一条 v1 记录（产品名取文件名，用量与反馈留空）。继续？")))return;
   var ok=0,fail=[];
   for(var i=0;i<files.length;i++){
     var f=files[i],id=idNew(),pname=(f.name||"图片").replace(/\.[^.]+$/,"")||"未命名图片";
@@ -580,6 +584,17 @@ async function doBatch(files){
   }
   await reloadAndDraw();
   toast("批量导入完成："+ok+" 条成功"+(fail.length?"，"+fail.length+" 条失败":""));
+}
+function askConfirm(msg){
+  return new Promise(function(resolve){
+    var mask=document.createElement('div'); mask.className='askmask';
+    mask.innerHTML='<div class="askbox"><div class="askmsg">'+esc(msg)+'</div><div class="askfoot"><button class="btn" data-ask="0">取消</button><button class="btn primary" data-ask="1">确定</button></div></div>';
+    document.body.appendChild(mask);
+    function done(v){ try{mask.remove();}catch(e){} resolve(v); }
+    mask.querySelector('[data-ask="0"]').onclick=function(){ done(false); };
+    mask.querySelector('[data-ask="1"]').onclick=function(){ done(true); };
+    mask.addEventListener('click',function(e){ if(e.target===mask) done(false); });
+  });
 }
 /* ---------- 顶栏 ---------- */
 $("#btnExport").onclick=doExport;
