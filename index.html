@@ -93,9 +93,9 @@ textarea.fb{width:calc(100% - 24px);margin:6px 12px 14px;border:1px solid var(--
   <div><h1>配方工作站 · 模式二</h1><div class="sub">云端共享 · 可拖动导图 · 版本迭代 · 点开即改 · 备份带图</div></div>
   <div class="ops">
     <span class="seg"><a href="https://luotao-ai.github.io/formula-station/">列表</a><a class="on" href="./index.html">思维导图</a></span><span class="status" id="st">连接中…</span>
-    <button class="btn" id="btnExport" disabled title="阶段三开放">导出备份（含图）</button>
-    <button class="btn" id="btnImport" disabled title="阶段三开放">导入备份</button>
-    <button class="btn" id="btnBatch" disabled title="阶段三开放">批量导入图片</button>
+    <button class="btn" id="btnExport">导出备份（含图）</button>
+    <button class="btn" id="btnImport">导入备份</button>
+    <button class="btn" id="btnBatch">批量导入图片</button>
     <button class="btn primary" id="btnNew" disabled title="阶段二后续开放">+ 新建配方</button>
     <button class="btn" id="btnOut">退出</button>
   </div>
@@ -118,6 +118,7 @@ textarea.fb{width:calc(100% - 24px);margin:6px 12px 14px;border:1px solid var(--
 </div>
 
 <div class="toast" id="toast"></div>
+<input type="file" id="hiddenFile" style="display:none">
 
 <script>
 (function(){
@@ -427,7 +428,163 @@ async function delRecord(r){
   }catch(e){toast("删除失败："+e.message);}
 }
 
+/* ================= 阶段三：备份 / 批量导入 ================= */
+var pending="import";
+var CRC=(function(){var t=new Uint32Array(256);for(var n=0;n<256;n++){var c=n;for(var k=0;k<8;k++)c=(c&1)?(0xEDB88320^(c>>>1)):(c>>>1);t[n]=c>>>0;}return t;})();
+function crc32(u8){var c=0xFFFFFFFF;for(var i=0;i<u8.length;i++)c=CRC[(c^u8[i])&0xFF]^(c>>>8);return (c^0xFFFFFFFF)>>>0;}
+function enc(s){return new TextEncoder().encode(s);}
+async function zipPack(entries){
+  var parts=[],central=[],offset=0;
+  function u16(n){return new Uint8Array([n&255,(n>>>8)&255]);}
+  function u32(n){return new Uint8Array([n&255,(n>>>8)&255,(n>>>16)&255,(n>>>24)&255]);}
+  function cat(a){var len=a.reduce(function(x,y){return x+y.length;},0),o=new Uint8Array(len),p=0;a.forEach(function(x){o.set(x,p);p+=x.length;});return o;}
+  var d=new Date(),t=((d.getHours()<<11)|(d.getMinutes()<<5)|(d.getSeconds()/2))&0xFFFF,
+      dt=(((d.getFullYear()-1980)<<9)|((d.getMonth()+1)<<5)|d.getDate())&0xFFFF;
+  entries.forEach(function(e){
+    var nm=enc(e.name),data=e.data,crc=crc32(data);
+    var local=cat([u32(0x04034b50),u16(20),u16(0x0800),u16(0),u16(t),u16(dt),u32(crc),u32(data.length),u32(data.length),u16(nm.length),u16(0),nm,data]);
+    parts.push(local);
+    central.push(cat([u32(0x02014b50),u16(20),u16(20),u16(0x0800),u16(0),u16(t),u16(dt),u32(crc),u32(data.length),u32(data.length),u16(nm.length),u16(0),u16(0),u16(0),u16(0),u32(0),u32(offset),nm]));
+    offset+=local.length;
+  });
+  var cb=cat(central), end=cat([u32(0x06054b50),u16(0),u16(0),u16(entries.length),u16(entries.length),u32(cb.length),u32(offset),u16(0)]);
+  return new Blob([cat(parts),cb,end],{type:"application/zip"});
+}
+function zipUnpack(buf){
+  var u8=new Uint8Array(buf),dv=new DataView(buf),out=[],p=0;
+  while(p<u8.length-4){
+    var sig=dv.getUint32(p,true);
+    if(sig===0x02014b50||sig===0x06054b50)break;
+    if(sig!==0x04034b50)throw new Error("压缩包格式不认识（可能不是本系统导出的）");
+    var method=dv.getUint16(p+8,true),csize=dv.getUint32(p+18,true),nlen=dv.getUint16(p+26,true),elen=dv.getUint16(p+28,true);
+    var nm=new TextDecoder().decode(u8.slice(p+30,p+30+nlen)),ds=p+30+nlen+elen;
+    if(method!==0)throw new Error("压缩包用了压缩算法，本系统只支持自己导出的包");
+    out.push({name:nm,data:u8.slice(ds,ds+csize)});p=ds+csize;
+  }
+  return out;
+}
+function safeName(raw){
+  raw=raw||"file";var dot=raw.lastIndexOf(".");
+  var ext=dot>-1?raw.slice(dot+1).replace(/[^A-Za-z0-9]/g,"").slice(0,8).toLowerCase():"";
+  var base=(dot>-1?raw.slice(0,dot):raw).replace(/[^A-Za-z0-9_-]/g,"_").replace(/_+/g,"_").slice(0,40)||"file";
+  return base+(ext?"."+ext:"");
+}
+async function uploadFile(file,recId,kind){
+  if(file.size>MAX_MB*1024*1024)throw new Error("文件「"+file.name+"」有 "+(file.size/1024/1024).toFixed(1)+"MB，超过单文件上限 "+MAX_MB+"MB，已拒绝");
+  var path=recId+"/"+kind+"-"+Date.now()+"-"+safeName(file.name);
+  var r=await fetch(SB_URL+"/storage/v1/object/files/"+path,{method:"POST",headers:{apikey:SB_KEY,Authorization:"Bearer "+SB_KEY,"x-upsert":"true","Content-Type":file.type||"application/octet-stream"},body:file});
+  if(!r.ok){var txt=await r.text();throw new Error("上传失败："+txt.slice(0,120));}
+  return SB_URL+"/storage/v1/object/public/files/"+path;
+}
+async function fetchAsU8(url){var r=await fetch(url);if(!r.ok)throw new Error("下载失败");return new Uint8Array(await r.arrayBuffer());}
+function guessType(n){return /\.(jpg|jpeg)$/i.test(n)?"image/jpeg":/\.png$/i.test(n)?"image/png":/\.webp$/i.test(n)?"image/webp":/\.gif$/i.test(n)?"image/gif":/\.pdf$/i.test(n)?"application/pdf":"application/octet-stream";}
+async function reloadAndDraw(){await loadAll();autoLayout();draw();fitView();}
+async function upsertRecords(recs){
+  if(!recs.length)return;
+  await sb("/records?on_conflict=id",{method:"POST",prefer:"resolution=merge-duplicates,return=minimal",body:recs.map(function(r){
+    return {id:r.id,product:r.product,category:r.category||"",version:parseInt(r.version,10)||1,date:r.date||null,title:r.title||"",
+      ingredients:r.ingredients||[],process:r.process||[],feedback:r.feedback||"",parent_id:r.parent_id||null,source:r.source||"manual",
+      recipe_image_url:r.recipe_image_url||"",product_image_url:r.product_image_url||"",attachments:r.attachments||[],updated_by:r.updated_by||"(导入)",updated_at:new Date().toISOString()};
+  })});
+}
+async function doExport(){
+  if(!records.length){toast("还没有记录可导出");return;}
+  toast("正在打包…");
+  try{
+    var files=[],seen={},meta={app:"formula-station-map",version:4,exportedAt:new Date().toISOString(),exportedBy:name,records:[]};
+    for(var i=0;i<records.length;i++){
+      var r=records[i],copy=JSON.parse(JSON.stringify(r));
+      var fields=["recipe_image_url","product_image_url"];
+      for(var j=0;j<fields.length;j++){
+        var f0=fields[j],u=r[f0];
+        if(u&&u.indexOf(SB_URL+"/storage/v1/object/public/files/")===0){
+          var rel=decodeURIComponent(u.split("/object/public/files/")[1]),zn="images/"+rel;
+          if(!seen[zn]){seen[zn]=1;try{files.push({name:zn,data:await fetchAsU8(u)});}catch(e){}}
+          copy[f0]=zn;
+        }
+      }
+      copy.attachments=[];
+      for(var k=0;k<(r.attachments||[]).length;k++){
+        var a=r.attachments[k],ac=JSON.parse(JSON.stringify(a));
+        if(a.url&&a.url.indexOf(SB_URL+"/storage/v1/object/public/files/")===0){
+          var arel=decodeURIComponent(a.url.split("/object/public/files/")[1]),azn="images/"+arel;
+          if(!seen[azn]){seen[azn]=1;try{files.push({name:azn,data:await fetchAsU8(a.url)});}catch(e){}}
+          ac.url=azn;
+        }
+        copy.attachments.push(ac);
+      }
+      meta.records.push(copy);
+    }
+    files.unshift({name:"meta.json",data:enc(JSON.stringify(meta,null,2))});
+    var blob=await zipPack(files),a2=document.createElement("a");
+    a2.href=URL.createObjectURL(blob);a2.download="配方备份-"+new Date().toISOString().slice(0,10)+".zip";a2.click();
+    setTimeout(function(){URL.revokeObjectURL(a2.href);},800);
+    toast("已导出：记录 "+records.length+" 条、文件 "+files.length+" 个");
+  }catch(e){toast("导出失败："+e.message);}
+}
+async function doImportFile(f){
+  if(!f)return;
+  var isImg=/^image\//.test(f.type||"")||/\.(png|jpe?g|webp|gif|heic)$/i.test(f.name||"");
+  if(isImg){toast("这是图片，请用「批量导入图片」");return;}
+  try{
+    if(/\.json$/i.test(f.name)){
+      var d=JSON.parse(await f.text()),recs=Array.isArray(d)?d:d.records;
+      if(!Array.isArray(recs))throw new Error("这个 JSON 里没有 records");
+      if(!confirm("纯 JSON 备份不含图片与附件，将导入 "+recs.length+" 条记录（不删除现有数据），继续？"))return;
+      await upsertRecords(recs.map(function(r){return Object.assign({},r,{recipe_image_url:"",product_image_url:""});}));
+      await reloadAndDraw();toast("已导入 "+recs.length+" 条（图片需重新上传）");return;
+    }
+    var entries=zipUnpack(await f.arrayBuffer());
+    var me=entries.filter(function(e){return e.name==="meta.json";})[0];
+    if(!me)throw new Error("压缩包里没有 meta.json，不是本系统导出的备份");
+    var meta=JSON.parse(new TextDecoder().decode(me.data));
+    var imgs=entries.filter(function(e){return e.name.indexOf("images/")===0;});
+    if(!confirm("将恢复 "+meta.records.length+" 条记录、"+imgs.length+" 个图片文件（不删除现有数据）。继续？"))return;
+    var map={};
+    for(var i=0;i<imgs.length;i++){
+      var e=imgs[i],nameOnly=e.name.split("/").pop();
+      var blob=new Blob([e.data],{type:guessType(nameOnly)}),file=new File([blob],nameOnly,{type:blob.type});
+      map[e.name]=await uploadFile(file,"import","img");
+    }
+    var recs2=meta.records.map(function(r){
+      var o=Object.assign({},r);
+      ["recipe_image_url","product_image_url"].forEach(function(k){
+        if(o[k]&&map[o[k]])o[k]=map[o[k]];else if(o[k]&&o[k].indexOf("http")!==0)o[k]="";
+      });
+      o.attachments=(r.attachments||[]).map(function(a){var ac=Object.assign({},a);
+        if(ac.url&&map[ac.url])ac.url=map[ac.url];else if(ac.url&&ac.url.indexOf("http")!==0)ac.url="";return ac;}).filter(function(a){return a.url;});
+      return o;
+    });
+    await upsertRecords(recs2);await reloadAndDraw();
+    toast("已恢复：记录 "+recs2.length+" 条、图片 "+imgs.length+" 个");
+  }catch(e){toast("导入失败："+e.message+"（现有数据未改动）");}
+}
+async function doBatch(files){
+  files=files||[];
+  if(!files.length)return;
+  var over=files.filter(function(f){return f.size>MAX_MB*1024*1024;});
+  if(over.length){toast("有 "+over.length+" 个文件超 "+MAX_MB+"MB，已跳过");files=files.filter(function(f){return f.size<=MAX_MB*1024*1024;});}
+  if(!files.length)return;
+  if(!confirm("将用这 "+files.length+" 张图片各建一条 v1 记录（产品名取文件名，用量与反馈留空）。继续？"))return;
+  var ok=0,fail=[];
+  for(var i=0;i<files.length;i++){
+    var f=files[i],id=idNew(),pname=(f.name||"图片").replace(/\.[^.]+$/,"")||"未命名图片";
+    toast("批量导入 "+(i+1)+"/"+files.length+" …");
+    try{
+      var url=await uploadFile(f,id,"recipe");
+      await sb("/records",{method:"POST",body:{id:id,product:pname,category:"",version:1,date:new Date().toISOString().slice(0,10),title:"",
+        ingredients:[],process:[],feedback:"",parent_id:null,source:"manual",recipe_image_url:url,product_image_url:"",attachments:[],updated_by:name}});
+      ok++;
+    }catch(e){fail.push(pname+"（"+e.message+"）");}
+  }
+  await reloadAndDraw();
+  toast("批量导入完成："+ok+" 条成功"+(fail.length?"，"+fail.length+" 条失败":""));
+}
 /* ---------- 顶栏 ---------- */
+$("#btnExport").onclick=doExport;
+$("#btnImport").onclick=function(){pending="import";var h=$("#hiddenFile");h.accept=".zip,.json";h.multiple=false;h.value="";h.click();};
+$("#btnBatch").onclick=function(){pending="batch";var h=$("#hiddenFile");h.accept="image/*";h.multiple=true;h.value="";h.click();};
+$("#hiddenFile").onchange=function(){var fs=Array.prototype.slice.call($("#hiddenFile").files||[]);$("#hiddenFile").value="";if(pending==="batch")doBatch(fs);else doImportFile(fs[0]);};
 $("#btnOut").onclick=function(){sessionStorage.removeItem("fx_pass");location.reload();};
 document.addEventListener("keydown",function(e){
   if(e.key==="Escape") $("#drawer").classList.remove("on");
