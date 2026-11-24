@@ -57,6 +57,9 @@ textarea.fb{width:calc(100% - 24px);margin:6px 12px 14px;border:1px solid var(--
 .f input{width:100%;border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:13px;outline:none}
 .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(10px);background:#1d2129;color:#fff;font-size:13px;padding:8px 16px;border-radius:8px;opacity:0;pointer-events:none;transition:.2s;z-index:90;max-width:88vw}
 .toast.on{opacity:1;transform:translateX(-50%)}
+.modeseg{padding:2px;border:1px solid var(--line);border-radius:8px;background:#f7f8fa;display:inline-flex;gap:2px;margin-right:6px}
+.modeseg button{border:0;background:transparent;font-size:12.5px;padding:4px 10px;border-radius:6px;color:var(--sub);cursor:pointer}
+.modeseg button.on{background:#fff;color:var(--brand);font-weight:600}
 .node{cursor:grab}
 .node text{font-size:12px;fill:var(--ink);pointer-events:none;user-select:none}
 .node .ver{fill:var(--brand);font-weight:600}
@@ -96,6 +99,7 @@ textarea.fb{width:calc(100% - 24px);margin:6px 12px 14px;border:1px solid var(--
 <header>
   <div><h1>配方工作站 · 模式二</h1><div class="sub">云端共享 · 可拖动导图 · 版本迭代 · 点开即改 · 备份带图</div></div>
   <div class="ops">
+    <div class="modeseg" id="modeSeg"><button data-m="product" class="on">按产品</button><button data-m="category">按品类</button><button data-m="month">按月</button></div>
     <span class="seg"><a href="https://luotao-ai.github.io/formula-station/">列表</a><a class="on" href="./index.html">思维导图</a></span><span class="status" id="st">连接中…</span>
     <button class="btn" id="btnExport">导出备份（含图）</button>
     <button class="btn" id="btnImport">导入备份</button>
@@ -601,6 +605,21 @@ $("#btnExport").onclick=doExport;
 $("#btnImport").onclick=function(){pending="import";var h=$("#hiddenFile");h.accept=".zip,.json";h.multiple=false;h.value="";h.click();};
 $("#btnBatch").onclick=function(){pending="batch";var h=$("#hiddenFile");h.accept="image/*";h.multiple=true;h.value="";h.click();};
 $("#hiddenFile").onchange=function(){var fs=Array.prototype.slice.call($("#hiddenFile").files||[]);$("#hiddenFile").value="";if(pending==="batch")doBatch(fs);else doImportFile(fs[0]);};
+/* 分区方式切换 */
+function applyMode(m){
+  mode = (m==="category"||m==="month") ? m : "product";
+  try{ localStorage.setItem("fx_mode", mode); }catch(e){}
+  Array.prototype.forEach.call(document.querySelectorAll("#modeSeg button"), function(b){
+    b.classList.toggle("on", b.getAttribute("data-m") === mode);
+  });
+  autoLayout(); draw(); fitView();
+}
+Array.prototype.forEach.call(document.querySelectorAll("#modeSeg button"), function(b){
+  b.onclick = function(){ applyMode(b.getAttribute("data-m")); };
+});
+var savedMode = localStorage.getItem("fx_mode");
+if(savedMode && savedMode!=="product"){ applyMode(savedMode); }
+
 $("#btnOut").onclick=function(){sessionStorage.removeItem("fx_pass");location.reload();};
 document.addEventListener("keydown",function(e){
   if(e.key==="Escape") $("#drawer").classList.remove("on");
